@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "block matrix script",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "data/output/sm_1953_genre.pkl",
+                "data/input/blacklist.csv",
+                "data/output/bm_1953_genre_cosine.pkl"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "tie strengths script",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "data/input/red_artist_data.csv",
+                "data/output/sm_1953_genre_cosine.pkl",
+                "data/output/ts_1953_genre.pkl"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "socio matrix script",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "data/input/red_artist_data.csv",
+                "sm_1953_genre_cosine.pkl"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
