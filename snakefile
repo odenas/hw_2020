@@ -60,6 +60,6 @@ rule format_adata:
     input:
         "scripts/format_full_artist_data.py", "data/input/full_artist_data.csv"
     output:
-        "data/input/formatted_full_artist_data.csv"
+        protected("data/input/formatted_full_artist_data.csv")
     shell:
         ("python {input} --outfile {output}")
