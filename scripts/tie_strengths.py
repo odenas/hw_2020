@@ -6,12 +6,11 @@ import logging
 import os
 
 import argparse
-from giacomo.hollywood import pklLoad, pklSave
-from giacomo.hollywood.artist_data import ArtistInfoData
-from giacomo.hollywood.weights import Weight
+from ghw import pklLoad, pklSave
+from ghw.artist_data import ArtistInfoData
+from ghw.weights import Weight
 
 log = logging.getLogger(__name__)
-logging.getLogger("giacomo.hollywood.bmat").setLevel(logging.INFO)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
@@ -23,8 +22,8 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--weights', nargs=2, default=[None, None],
                         help='Genre and role weight files.')
     args = parser.parse_args()
-
     logging.basicConfig(level=logging.INFO)
+
     D = ArtistInfoData(args.artists)
     W = Weight(*args.weights)
     SM = pklLoad(args.socioMatrix)

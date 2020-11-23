@@ -26,6 +26,7 @@ def floyd(M, weighted):
         M[M > 0] = 1
 
     # log.error("skipping ...")
+    import pdb; pdb.set_trace();
     for k in range(n):
         M = np.minimum(M, np.add.outer(M[:, k], M[k, :]))
     return M

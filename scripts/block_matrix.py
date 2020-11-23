@@ -4,13 +4,11 @@ import logging
 import os
 import sys
 
-from giacomo.hollywood import pklLoad, pklSave
-from giacomo.hollywood.blacklist_data import BlacklistData
-from giacomo.hollywood.block_matrix import BlockMatrix
+from ghw import pklLoad, pklSave
+from ghw.blacklist_data import BlacklistData
+from ghw.block_matrix import BlockMatrix
 
 log = logging.getLogger(__name__)
-logging.getLogger("giacomo.hollywood.bmat").setLevel(logging.INFO)
-logging.basicConfig(level=logging.DEBUG)
 
 
 def allSenders(bl_path, Y):
@@ -34,6 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('blacklist', type=str, default=None, help='Blacklist data')
     parser.add_argument('output', type=str, help='Output ')
     args = parser.parse_args()
+    logging.basicConfig(level=logging.DEBUG)
 
     distances = list(map(lambda s: (s.split(".")[0]), os.path.splitext(args.output)[0].split("_")[3:4]))
     year = int(os.path.splitext(args.matrix)[0].split("_")[1])

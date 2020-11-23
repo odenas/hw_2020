@@ -1,4 +1,7 @@
 
+artist_data = "data/input/red_artist_data.csv"
+#artist_data = "data/input/formatted_full_artist_data.csv"
+
 years = [1951, 1952, 1953, 1954, 1955]
 years = [1953]
 relations = ["nominated", "year", "champ", "film", "genre", "prodhouse", "role"]
@@ -13,7 +16,7 @@ rule all:
 
 rule report:
     input:
-        "scripts/report.py",
+        "report.py",
         "data/output/sm_{year}_{relation}.pkl",
         "data/output/bm_{year}_{relation}_{metric}.pkl",
         "data/output/ts_{year}_{relation}.pkl",
@@ -25,7 +28,7 @@ rule report:
 
 rule block_matrix:
     input:
-        "scripts/block_matrix.py",
+        "block_matrix.py",
         "data/output/sm_{year}_{relation}.pkl",
         "data/input/blacklist.csv"
     output:
@@ -36,8 +39,8 @@ rule block_matrix:
 
 rule tie_strengths:
     input:
-        "scripts/tie_strengths.py",
-        "data/input/red_artist_data.csv",
+        "tie_strengths.py",
+        artist_data,
         "data/output/sm_{year}_{relation}.pkl"
     output:
         "data/output/ts_{year}_{relation}.pkl"
@@ -46,9 +49,17 @@ rule tie_strengths:
 
 rule socio_matrix:
     input:
-        "scripts/socio_matrix.py",
-        "data/input/red_artist_data.csv"
+        "socio_matrix.py",
+        artist_data
     output:
         "data/output/sm_{year}_{relation}.pkl"
     shell:
         ("python {input} {output}")
+
+rule format_adata:
+    input:
+        "format_full_artist_data.py", "data/input/full_artist_data.csv"
+    output:
+        "data/input/formatted_full_artist_data.csv"
+    shell:
+        ("python {input} --outfile {output}")

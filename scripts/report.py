@@ -3,15 +3,14 @@
 import logging
 
 import argparse
-from giacomo.hollywood import pklLoad
-from giacomo.hollywood.blacklist_data import BlacklistData
-from giacomo.hollywood.affiliations import Affiliations
-from giacomo.hollywood.weights import Weight
-from giacomo.hollywood.report import Report
+from ghw import pklLoad
+from ghw.blacklist_data import BlacklistData
+from ghw.affiliations import Affiliations
+from ghw.weights import Weight
+from ghw.report import Report
 
 
 log = logging.getLogger(__name__)
-logging.getLogger("giacomo.hollywood.bmat").setLevel(logging.DEBUG)
 
 
 def main(report, sep):

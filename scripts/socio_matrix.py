@@ -9,14 +9,14 @@ from collections import OrderedDict
 
 import argparse
 
-from giacomo.hollywood import pklSave, rel_names
-from giacomo.hollywood.artist_data import ArtistInfoData
-from giacomo.hollywood.weights import Weight
-from giacomo.hollywood.socio_matrix import SocioMatrix
+from ghw import pklSave, rel_names
+from ghw.artist_data import ArtistInfoData
+from ghw.weights import Weight
+from ghw.socio_matrix import SocioMatrix
 
 
 log = logging.getLogger(__name__)
-logging.getLogger("giacomo.hollywood.bmat").setLevel(logging.INFO)
+logging.getLogger("ghw.bmat").setLevel(logging.INFO)
 
 
 def main(artist_data, weights, year, relation, output):

@@ -4,7 +4,7 @@ import logging
 
 from .matrix import Matrix
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 class SocioMatrix(Matrix):
