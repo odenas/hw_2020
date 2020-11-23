@@ -16,7 +16,7 @@ rule all:
 
 rule report:
     input:
-        "report.py",
+        "scripts/report.py",
         "data/output/sm_{year}_{relation}.pkl",
         "data/output/bm_{year}_{relation}_{metric}.pkl",
         "data/output/ts_{year}_{relation}.pkl",
@@ -28,7 +28,7 @@ rule report:
 
 rule block_matrix:
     input:
-        "block_matrix.py",
+        "scripts/block_matrix.py",
         "data/output/sm_{year}_{relation}.pkl",
         "data/input/blacklist.csv"
     output:
@@ -39,7 +39,7 @@ rule block_matrix:
 
 rule tie_strengths:
     input:
-        "tie_strengths.py",
+        "scripts/tie_strengths.py",
         artist_data,
         "data/output/sm_{year}_{relation}.pkl"
     output:
@@ -49,7 +49,7 @@ rule tie_strengths:
 
 rule socio_matrix:
     input:
-        "socio_matrix.py",
+        "scripts/socio_matrix.py",
         artist_data
     output:
         "data/output/sm_{year}_{relation}.pkl"
@@ -58,7 +58,7 @@ rule socio_matrix:
 
 rule format_adata:
     input:
-        "format_full_artist_data.py", "data/input/full_artist_data.csv"
+        "scripts/format_full_artist_data.py", "data/input/full_artist_data.csv"
     output:
         "data/input/formatted_full_artist_data.csv"
     shell:
