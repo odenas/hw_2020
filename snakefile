@@ -3,11 +3,11 @@ artist_data = "data/input/red_artist_data.csv"
 #artist_data = "data/input/formatted_full_artist_data.csv"
 
 years = [1951, 1952, 1953, 1954, 1955]
-years = [1953]
-relations = ["nominated", "year", "champ", "film", "genre", "prodhouse", "role"]
-relations = ["genre", "prodhouse"]
+#years = [1953]
+relations = ["oscarnom", "experience", "champ", "film", "genre", "prodhouse", "role"]
+#relations = ["genre", "prodhouse"]
 metrics = ["cosine", "euclidean", "correlation"]
-metrics = ["cosine"]
+#metrics = ["cosine"]
 
 rule all:
     input:

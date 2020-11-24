@@ -17,32 +17,33 @@ def rel_mapping(in_dir, skip):
         ('sm_1951_nominated', f'{in_dir}/sm_1951_oscarnom.pkl'),
         ('sm_1951_year', f'{in_dir}/sm_1951_experience.pkl'),
         ('sm_1951_champ', f'{in_dir}/sm_1951_champ.pkl'),
+        ('sm_1951_film', f'{in_dir}/sm_1951_film.pkl'),
         ('sm_1951_genre', f'{in_dir}/sm_1951_genre.pkl'),
         ('sm_1951_house', f'{in_dir}/sm_1951_prodhouse.pkl'),
         ('sm_1951_role', f'{in_dir}/sm_1951_role.pkl'),
+
         ('bm_1951_nominated_corr.mtx', f'{in_dir}/bm_1951_oscarnom_correlation.pkl'),
-        ('bm_1951_nominated_cosine.mtx', f'{in_dir}/bm_1951_oscarnom_cosine.pkl'),
-        ('bm_1951_nominated_euclidean.mtx', f'{in_dir}/bm_1951_oscarnom_euclidean.pkl'),
-
-        # not sure why year has no .mtx suffix
         ('bm_1951_year_corr', f'{in_dir}/bm_1951_experience_correlation.pkl'),
-        ('bm_1951_year_cosine', f'{in_dir}/bm_1951_experience_cosine.pkl'),
-        ('bm_1951_year_euclidean', f'{in_dir}/bm_1951_experience_euclidean.pkl'),
-
         ('bm_1951_champ_corr.mtx', f'{in_dir}/bm_1951_champ_correlation.pkl'),
-        ('bm_1951_champ_cosine.mtx', f'{in_dir}/bm_1951_champ_cosine.pkl'),
-        ('bm_1951_champ_euclidean.mtx', f'{in_dir}/bm_1951_champ_euclidean.pkl'),
-
+        ('bm_1951_film_corr.mtx', f'{in_dir}/bm_1951_film_correlation.pkl'),
         ('bm_1951_genre_corr.mtx', f'{in_dir}/bm_1951_genre_correlation.pkl'),
-        ('bm_1951_genre_cosine.mtx', f'{in_dir}/bm_1951_genre_cosine.pkl'),
-        ('bm_1951_genre_euclidean.mtx', f'{in_dir}/bm_1951_genre_euclidean.pkl'),
-
         ('bm_1951_house_corr.mtx', f'{in_dir}/bm_1951_prodhouse_correlation.pkl'),
-        ('bm_1951_house_cosine.mtx', f'{in_dir}/bm_1951_prodhouse_cosine.pkl'),
-        ('bm_1951_house_euclidean.mtx', f'{in_dir}/bm_1951_prodhouse_euclidean.pkl'),
-
         ('bm_1951_role_corr.mtx', f'{in_dir}/bm_1951_role_correlation.pkl'),
+
+        ('bm_1951_nominated_cosine.mtx', f'{in_dir}/bm_1951_oscarnom_cosine.pkl'),
+        ('bm_1951_year_cosine', f'{in_dir}/bm_1951_experience_cosine.pkl'),
+        ('bm_1951_champ_cosine.mtx', f'{in_dir}/bm_1951_champ_cosine.pkl'),
+        ('bm_1951_film_cosine.mtx', f'{in_dir}/bm_1951_film_cosine.pkl'),
+        ('bm_1951_genre_cosine.mtx', f'{in_dir}/bm_1951_genre_cosine.pkl'),
+        ('bm_1951_house_cosine.mtx', f'{in_dir}/bm_1951_prodhouse_cosine.pkl'),
         ('bm_1951_role_cosine.mtx', f'{in_dir}/bm_1951_role_cosine.pkl'),
+
+        ('bm_1951_nominated_euclidean.mtx', f'{in_dir}/bm_1951_oscarnom_euclidean.pkl'),
+        ('bm_1951_year_euclidean', f'{in_dir}/bm_1951_experience_euclidean.pkl'),
+        ('bm_1951_champ_euclidean.mtx', f'{in_dir}/bm_1951_champ_euclidean.pkl'),
+        ('bm_1951_film_euclidean.mtx', f'{in_dir}/bm_1951_film_euclidean.pkl'),
+        ('bm_1951_genre_euclidean.mtx', f'{in_dir}/bm_1951_genre_euclidean.pkl'),
+        ('bm_1951_house_euclidean.mtx', f'{in_dir}/bm_1951_prodhouse_euclidean.pkl'),
         ('bm_1951_role_euclidean.mtx', f'{in_dir}/bm_1951_role_euclidean.pkl'),
     ])
     log.info("filter out non-existent paths ...")
@@ -73,6 +74,7 @@ def load_report(path):
         'receiver_card',
         'centrality_s', 'centrality_r',
         'comm_corr_s', 'comm_corr_r', 'summ_s', 'summ_r',
+        "shortest_path"
     ]
     df = pd.read_csv(path, delimiter=", ", na_values=[' '], engine='python')[_df_cols]
     return df.rename(columns={'tie_strength_sender_den': 'ts_send',
