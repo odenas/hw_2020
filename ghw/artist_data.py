@@ -166,7 +166,7 @@ class ArtistInfoData(object):
         elif sname in ("year",):
             return len(set(ainfo_vals))
         elif sname in ("nominated", "champ"):
-            return len(filter(lambda p: p, ainfo_vals))
+            return len(list(filter(lambda p: p, ainfo_vals)))
         else:
             assert not (sname in self.sim_attributes)
             raise ValueError("cannot handle %s (%r)" % (sname, type(sname)))
