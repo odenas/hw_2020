@@ -1,2 +1,6 @@
 __pycache__
 *pyc
+dev_env
+ghw.egg-info
+.snakemake
+.ipynb_checkpoints
