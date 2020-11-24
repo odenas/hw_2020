@@ -58,7 +58,6 @@ rule socio_matrix:
 
 rule input_db:
     input:
-        script="data/input/create_db.sqlite",
         adata="data/input/formatted_full_artist_data.csv",
         bdata="data/input/blacklist.csv"
     output:
