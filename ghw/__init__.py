@@ -113,7 +113,9 @@ rel_names = OrderedDict(
     [("champ",  "champ"),
      ("experience", "year"),
      ("genre", "genre"),
-     ("oscarnom", "nominated"), ("prodhouse", "prod_house"),
+     ("oscarnom", "nominated"),
+     ("film", "film"),
+     ("prodhouse", "prod_house"),
      ("role", "role")]
 )
 
