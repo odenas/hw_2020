@@ -56,6 +56,21 @@ rule socio_matrix:
     shell:
         ("python {input} {output}")
 
+rule input_db:
+    input:
+        script="data/input/create_db.sqlite",
+        adata="data/input/formatted_full_artist_data.csv",
+        bdata="data/input/blacklist.csv"
+    output:
+        "data/input/all_data.db"
+    shell:
+        ("echo -e '"
+        ".mode csv\n"
+        ".import {input.adata} adata\n"
+        ".import {input.bdata} bdata\n"
+        ".quit\n' | sqlite3 {output}")
+
+
 rule format_adata:
     input:
         "scripts/format_full_artist_data.py", "data/input/full_artist_data.csv"
