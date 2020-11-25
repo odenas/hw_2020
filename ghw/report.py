@@ -7,7 +7,7 @@ from .matrix import Matrix
 log = logging.getLogger()
 
 
-def floyd(M, weighted):
+def floyd(M):
     """
     The Floyd-Wallshall algorithm for the shortest path.
 
@@ -133,7 +133,6 @@ class Report(object):
             distance functions)
         :param list rel_names: orderedDict of relations and attributes of
             the type relation --> attribute (used to refernece relation functions)
-        :param dict weights: dictionary of the type attribute_value --> weight
     """
 
     def __init__(self, year, adata, bdata, SM, BM, TS, dist_names, rel_names):
@@ -154,10 +153,8 @@ class Report(object):
         log.info("reporting on %d actors ..." % len(self.actors))
         log.info("\tbonacich centrality")
         self.boncent = bonacich_centrality(self.tstrengths[0])
-        log.info("\tweighted shortest paths...")
-        self.weighted_shpaths = floyd(self.tstrengths[0], weighted=True)
         log.info("\tshortest paths...")
-        self.shpaths = floyd(self.tstrengths[0], weighted=False)
+        self.shpaths = floyd(self.tstrengths[0])
 
         log.info("\ttriadic closure (1 of 4) ...")
         self.tr1, self.tr1_idx = closure(self.tstrengths[0], self.V,
@@ -211,7 +208,7 @@ class Report(object):
             # might be empty since dist_lst wants both s,r in V.keys()
             Matrix._get(s, r, self.tstrengths, self.V) +
             (self.A.corr(s, r), self.A.sim(s, r)) +
-            Matrix._get(s, r, [self.weighted_shpaths, self.shpaths], self.V) +
+            Matrix._get(s, r, [self.shpaths], self.V) +
             Matrix._get(s, r, [self.tr1], self.tr1_idx) +
             Matrix._get(s, r, [self.tr2], self.tr2_idx) +
             Matrix._get(s, r, [self.tr3], self.tr3_idx) +
@@ -237,7 +234,7 @@ class Report(object):
                    ["tie_strength_sender_den", "tie_strength_receiver_den",
                     "tie_strength_intersect"] +
                    ["affiliation_corr", "affiliation_sim"] +
-                   ["weighted_shortest_path", "shortest_path"] +
+                   ["shortest_path"] +
                    ["tr1", "tr2", "tr3", "tr4"] +
                    ["receiver_card"] +
                    ["centrality_s", "centrality_r", "bonacich_centrality_s",
