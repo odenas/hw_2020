@@ -25,8 +25,6 @@ log = logging.getLogger(__name__)
 __this_dir__ = os.path.dirname(__file__)
 
 __conf_path = os.path.join(__this_dir__, "conf.cfg")
-__role_weights_path = os.path.join(__this_dir__, 'role_weights.cfg')
-__genre_weights_path = os.path.join(__this_dir__, 'genre_weights.cfg')
 
 # load general settings
 log.debug("loading settings from %s ..." % __conf_path)
@@ -38,14 +36,6 @@ log.debug("%d fields in the report" % len(report_fields))
 
 gray_list = list(map(int, CFG.get("GENERAL", "gray_list").split()))
 log.debug("%d artists in the gray list" % len(gray_list))
-
-# load weights
-# RW = ConfigParser()
-# RW.readfp(open(__role_weights_path))
-
-# GW = ConfigParser()
-# GW.readfp(open(__genre_weights_path))
-
 
 def __parse_unfriendly(t):
     k, v = t

@@ -3,7 +3,6 @@ import numpy as np
 import csv
 
 from .matrix import similarity_function
-from .weights import Weight
 
 
 class Affiliations(object):
@@ -64,7 +63,7 @@ class Affiliations(object):
         B = set(to_lst(r))
         if not A:
             return 0
-        return similarity_function(A, B, Weight.one)
+        return similarity_function(A, B)
 
     def __pairwise_f(self, f):
         for i in self.data:

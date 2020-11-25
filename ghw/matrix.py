@@ -11,7 +11,7 @@ import numpy  as np
 log = logging.getLogger(__name__)
 
 
-def similarity_function(A, B, weights):
+def similarity_function(A, B):
     """similarity function defined on sets or numerical values
 
     computes the similarity value of A and B. note that this
@@ -23,6 +23,7 @@ def similarity_function(A, B, weights):
         :math:`1 - ( |A-B| / max\\{|A|, |B|\\} )` if A and B are ints.
     """
 
+    weights = lambda _a: 1
     if type(A) != type(B):
         raise ValueError("A(%r) != B(%r)" % (type(A), type(B)))
 

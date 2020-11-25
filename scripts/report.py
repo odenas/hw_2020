@@ -6,7 +6,6 @@ import argparse
 from ghw import pklLoad
 from ghw.blacklist_data import BlacklistData
 from ghw.affiliations import Affiliations
-from ghw.weights import Weight
 from ghw.report import Report
 
 
@@ -31,13 +30,10 @@ if __name__ == '__main__':
     parser.add_argument('network', nargs=3, type=str,
                         help='SocioMatrix, BlockMatrix, TieStrengths in that order.')
     parser.add_argument('blacklist', type=str, help='Blacklist data file')
-    parser.add_argument('-w', '--weights', nargs=2, default=[None, None],
-                        help='Genre and role weight files.')
     parser.add_argument('-s', '--sep', type=str, nargs='?', default=', ', help='Record separator')
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
 
-    W = Weight(*args.weights)
     Y = int(args.network[0].split("_")[1])
 
     log.info("loading socio matrix")

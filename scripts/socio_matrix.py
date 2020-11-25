@@ -11,7 +11,6 @@ import argparse
 
 from ghw import pklSave, rel_names
 from ghw.artist_data import ArtistInfoData
-from ghw.weights import Weight
 from ghw.socio_matrix import SocioMatrix
 
 
@@ -19,11 +18,11 @@ log = logging.getLogger(__name__)
 logging.getLogger("ghw.bmat").setLevel(logging.INFO)
 
 
-def main(artist_data, weights, year, relation, output):
+def main(artist_data, year, relation, output):
     log.info("%s - %s" % (Y, R))
     receivers = artist_data.data.keys()
     matrix = SocioMatrix(artist_data, int(year), receivers,
-                         OrderedDict([(relation, rel_names[R])]), weights, lag=args.lag)
+                         OrderedDict([(relation, rel_names[R])]), lag=args.lag)
     pklSave(output, matrix)
 
 
@@ -34,8 +33,6 @@ if __name__ == '__main__':
                         help='Output file (of the type sm_year_relation.pkl')
     parser.add_argument('--lag', type=int, choices=(5, 1000), default=1000,
                         help='Lag parameter')
-    parser.add_argument('-w', '--weights', nargs=2, default=[None, None],
-                        help='Genre and role weight files.')
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
@@ -43,4 +40,4 @@ if __name__ == '__main__':
     if R.endswith(".pkl"):
         R = R.split(".")[0]
 
-    sys.exit(main(ArtistInfoData(args.artists), Weight(*args.weights), Y, R, args.output))
+    sys.exit(main(ArtistInfoData(args.artists), Y, R, args.output))
