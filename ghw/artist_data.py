@@ -1,13 +1,14 @@
 from collections import namedtuple
 import csv
 import logging
-from operator import attrgetter, concat
+from operator import concat
 from functools import reduce
 
 import numpy as np
 from tqdm import tqdm
 
 from .matrix import similarity_function
+from .weights import Weight
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +63,49 @@ class ArtistInfoRow(namedtuple('ArtistInfoRow', artist_fields)):
         return tuple(map(lambda v: (type(v) == int and str(v) or v), t))
 
 
+def selector_champ(ainfol):
+    ainfo_vals = [a.champ for a in ainfol if a.champ]
+    return len(ainfo_vals)
+
+
+def selector_nominated(ainfol):
+    ainfo_vals = [a.nominated for a in ainfol if a.nominated]
+    return len(ainfo_vals)
+
+
+def selector_role(ainfol):
+    ainfo_vals = [a.role for a in ainfol]
+    return set(reduce(concat, ainfo_vals, ()))
+
+
+def selector_genre(ainfol):
+    ainfo_vals = [a.genre for a in ainfol]
+    return set(reduce(concat, ainfo_vals, ()))
+
+
+def selector_prod_house(ainfol):
+    ainfo_vals = [a.prod_house for a in ainfol]
+    return set(ainfo_vals)
+
+
+def selector_film(ainfol):
+    ainfo_vals = [a.film for a in ainfol]
+    return set(ainfo_vals)
+
+
+def selector_year(ainfol):
+    ainfo_vals = [a.year for a in ainfol]
+    return len(set(ainfo_vals))
+
+
+selector_functions = {
+    'champ': selector_champ, 'nominated': selector_nominated,
+    'role': selector_role, 'genre': selector_genre,
+    'prod_house': selector_prod_house, 'film': selector_film,
+    'year': selector_year
+}
+
+
 class ArtistInfoData(object):
     """loads and maintains a collection of
     :py:class:`ArtistInfoRow` instances. An instance has
@@ -87,35 +131,11 @@ class ArtistInfoData(object):
                 except ValueError:
                     invalid += 1
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
-        self.sim_attributes = ("role", "genre",
-                               "prod_house", "film",
-                               "year", "nominated", "champ")
+        self.sim_attributes = tuple(selector_functions)
 
-    def adj_matrix(self, year, attr, actors, weights,
+    def adj_matrix(self, year, attr, actors, selector,
+                   weights=Weight(None, None).weights_of("film"),
                    similarity_function=similarity_function, lag=1000):
-        """compute the adjacency matrix of a relation on
-        the given actors.
-
-        The method will remove all artists that had not have a
-        career until now.
-
-        :param int year: the features of actors after or on
-            this year will be filtered out
-        :param string attr: defines the relation. this is
-            an attribute of :py:class:`ArtistInfoRow`
-        :param list actors: the matrix will be based on these
-            actors
-        :param callable similarity_function: function defined
-            on two sets or integers giving the similarity.
-        :param dict weights: has the weight for each value of the relation domain
-        :param int lag: nr. of years back for which to
-            consider records. So records will be in the
-            period (year-lag, year) both excluded
-        :return: a tuple (list of actor_ids, numpy matrix)
-        """
-
-        # a projection of self.data, s.t.
-        # actors have had a career before this year
         log.info("filtering out career-less actors ...")
         data = {}
         for act in actors:
@@ -131,42 +151,10 @@ class ArtistInfoData(object):
 
         matrix = np.zeros((len(V), len(V)), dtype=np.float32)
         for a1 in tqdm(V.keys()):
-            op1 = self.__selector(data[a1], attr)
+            op1 = selector(data[a1])
             i = V[a1]
             for a2 in V.keys():
                 j = V[a2]
-                op2 = self.__selector(data[a2], attr)
+                op2 = selector(data[a2])
                 matrix[i, j] = similarity_function(op1, op2, weights)
         return V, matrix
-
-    def __selector(self, ainfol, sname):
-        """selects attributes of a set of artists and packs
-        them into an int or a set. this value can be feeded as
-        an operant to :py:func:`similarity_function`. Note that
-        this is a private method and should be called by
-        adj_matrix
-
-        :param iterable ainfol: list of artists (instances of
-            :py:class:`ArtistInfoRow`
-        :param string sname: attribute of
-            :py:class:`ArtistInfoRow` to select
-        :returns: set or int
-        """
-
-        if not ainfol:
-            raise ValueError("empty list of artists")
-
-        ainfo_vals = map(attrgetter(sname), ainfol)
-        assert ainfo_vals, "ainfol was not empty, but this is"
-
-        if sname in ("role", "genre"):
-            return set(reduce(concat, ainfo_vals, ()))
-        elif sname in ("prod_house", "film"):
-            return set(ainfo_vals)
-        elif sname in ("year",):
-            return len(set(ainfo_vals))
-        elif sname in ("nominated", "champ"):
-            return len(list(filter(lambda p: p, ainfo_vals)))
-        else:
-            assert not (sname in self.sim_attributes)
-            raise ValueError("cannot handle %s (%r)" % (sname, type(sname)))
