@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .matrix import similarity_function
+from .weights import Weight
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +63,47 @@ class ArtistInfoRow(namedtuple('ArtistInfoRow', artist_fields)):
         return tuple(map(lambda v: (type(v) == int and str(v) or v), t))
 
 
+def selector_champ(ainfol):
+    ainfo_vals = [a.champ for a in ainfol if a.champ]
+    return len(ainfo_vals)
+
+
+def selector_nominated(ainfol):
+    ainfo_vals = [a.nominated for a in ainfol if a.nominated]
+    return len(ainfo_vals)
+
+
+def selector_role(ainfol):
+    ainfo_vals = [a.role for a in ainfol]
+    return set(reduce(concat, ainfo_vals, ()))
+
+
+def selector_genre(ainfol):
+    ainfo_vals = [a.genre for a in ainfol]
+    return set(reduce(concat, ainfo_vals, ()))
+
+
+def selector_prod_house(ainfol):
+    ainfo_vals = [a.prod_house for a in ainfol]
+    return set(ainfo_vals)
+
+def selector_film(ainfol):
+    ainfo_vals = [a.film for a in ainfol]
+    return set(ainfo_vals)
+
+
+def selector_year(ainfol):
+    ainfo_vals = [a.year for a in ainfol]
+    return len(set(ainfo_vals))
+
+
+selector_functions = {
+    'champ': selector_champ, 'nominated': selector_nominated,
+    'role': selector_role, 'genre': selector_genre,
+    'prod_house': selector_prod_house, 'film': selector_film,
+    'year': selector_year
+}
+
 class ArtistInfoData(object):
     """loads and maintains a collection of
     :py:class:`ArtistInfoRow` instances. An instance has
@@ -87,11 +129,36 @@ class ArtistInfoData(object):
                 except ValueError:
                     invalid += 1
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
-        self.sim_attributes = ("role", "genre",
-                               "prod_house", "film",
-                               "year", "nominated", "champ")
+        self.sim_attributes = tuple(selector_functions)
 
-    def adj_matrix(self, year, attr, actors, weights,
+    def adj_matrix(self, year, attr, actors, selector,
+                   weights=Weight(None, None).weights_of("film"),
+                   similarity_function=similarity_function, lag=1000):
+        log.info("filtering out career-less actors ...")
+        data = {}
+        for act in actors:
+            career = list(filter(lambda r: (year - lag) < r.year < year, self.data.get(act, [])))
+            if career:
+                data[act] = career
+            else:
+                log.debug("dropping actor %s", act)
+        log.info("indexing (%d) actors ..." % len(data))
+        # actor indexes in the matrix
+        V = dict(map(lambda i_a: (i_a[1], i_a[0]),
+                 enumerate(filter(lambda a: a in data, actors))))
+
+        matrix = np.zeros((len(V), len(V)), dtype=np.float32)
+        for a1 in tqdm(V.keys()):
+            op1 = selector(data[a1])
+            i = V[a1]
+            for a2 in V.keys():
+                j = V[a2]
+                op2 = selector(data[a2])
+                matrix[i, j] = similarity_function(op1, op2, weights)
+        return V, matrix
+
+
+    def _adj_matrix(self, year, attr, actors, weights,
                    similarity_function=similarity_function, lag=1000):
         """compute the adjacency matrix of a relation on
         the given actors.

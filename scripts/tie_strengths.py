@@ -7,7 +7,7 @@ import os
 
 import argparse
 from ghw import pklLoad, pklSave
-from ghw.artist_data import ArtistInfoData
+from ghw.artist_data import ArtistInfoData, selector_functions
 from ghw.weights import Weight
 
 log = logging.getLogger(__name__)
@@ -45,10 +45,11 @@ if __name__ == '__main__':
     Y = int(os.path.splitext(args.socioMatrix)[0].split("_")[1])
     weights = W.weights_of("films")
 
+    sel_f = selector_functions["film"]
     adj_matrices = [
-        D.adj_matrix(Y, "film", actors, weights, similarity_function=length_first, lag=args.lag),
-        D.adj_matrix(Y, "film", actors, weights, similarity_function=length_second, lag=args.lag),
-        D.adj_matrix(Y, "film", actors, weights, similarity_function=length_both, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_first, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_second, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_both, lag=args.lag),
     ]
     tstrengths = list(zip(*adj_matrices))
     pklSave(args.output, tstrengths)

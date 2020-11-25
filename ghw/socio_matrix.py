@@ -3,6 +3,8 @@ from collections import OrderedDict
 import logging
 
 from .matrix import Matrix
+from .artist_data import selector_functions
+
 
 log = logging.getLogger(__name__)
 
@@ -11,25 +13,17 @@ class SocioMatrix(Matrix):
     """matrix defined over the similarity (jaccard) measure. maintains
 
     M an ordered dict of the type (relation_name) ---> matrix
-
     V dict of the type (artist) --> index
 
     to initialize needs:
 
-    data
-       :py:class:`giacomo.hollywood.bmat.ArtistInfoData`
-    year
-       int
-    actors
-       iterable
-    relations
-       a dictionary of the type (relation_name) --> attribute_name
-    weights
-       dictionary mapping attributes to weights
-    combined
-        bool
-    kwd
-       other options passed by name to ArtistInfoData.adj_matrix
+    data :py:class:`giacomo.hollywood.bmat.ArtistInfoData`
+    year int
+    actors iterable
+    relations a dictionary of the type (relation_name) --> attribute_name
+    weights dictionary mapping attributes to weights
+    combined bool
+    kwd other options passed by name to ArtistInfoData.adj_matrix
     """
 
     # TODO: combined should be part of the relations argument
@@ -39,7 +33,7 @@ class SocioMatrix(Matrix):
         self.V = None
         log.info("sociomatrix (%d actors) over relations:" % len(actors))
         for relname, relval in relations.items():
-            v, m = data.adj_matrix(year, relval, actors, weights.weights_of(relname), **kwd)
+            v, m = data.adj_matrix(year, relval, actors, selector_functions[relval], **kwd)
             self.M[relname] = m
             log.info("\t%s (%d actors)" % (relname, len(v)))
         if not self.V:
