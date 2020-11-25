@@ -42,9 +42,9 @@ if __name__ == '__main__':
 
     sel_f = selector_functions["film"]
     adj_matrices = [
-        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_first, lag=args.lag),
-        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_second, lag=args.lag),
-        D.adj_matrix(Y, "film", actors, sel_f, similarity_function=length_both, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, length_first, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, length_second, lag=args.lag),
+        D.adj_matrix(Y, "film", actors, sel_f, length_both, lag=args.lag),
     ]
     tstrengths = list(zip(*adj_matrices))
     pklSave(args.output, tstrengths)

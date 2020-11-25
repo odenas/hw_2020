@@ -105,6 +105,26 @@ selector_functions = {
 }
 
 
+def dist_champ(i, j):
+    if i == j:
+        return 0
+    return np.abs(i - j) / max(i, j)
+
+
+def dist_role(s1, s2):
+    if not s1:
+        return 0
+    return 1.001 - len(s1 & s2) / len(s1)
+
+
+distance_functions = {
+    'champ': dist_champ, 'nominated': dist_champ,
+    'role': dist_role, 'genre': dist_role,
+    'prod_house': dist_role, 'film': dist_role,
+    'year': dist_champ,
+}
+
+
 class ArtistInfoData(object):
     """loads and maintains a collection of
     :py:class:`ArtistInfoRow` instances. An instance has
@@ -132,8 +152,7 @@ class ArtistInfoData(object):
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
         self.sim_attributes = tuple(selector_functions)
 
-    def adj_matrix(self, year, attr, actors, selector,
-                   similarity_function=similarity_function, lag=1000):
+    def adj_matrix(self, year, attr, actors, selector, dist_func, lag=1000):
         log.info("filtering out career-less actors ...")
         data = {}
         for act in actors:
@@ -154,5 +173,5 @@ class ArtistInfoData(object):
             for a2 in V.keys():
                 j = V[a2]
                 op2 = selector(data[a2])
-                matrix[i, j] = similarity_function(op1, op2)
+                matrix[i, j] = dist_func(op1, op2)
         return V, matrix
