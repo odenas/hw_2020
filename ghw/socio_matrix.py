@@ -21,13 +21,12 @@ class SocioMatrix(Matrix):
     year int
     actors iterable
     relations a dictionary of the type (relation_name) --> attribute_name
-    weights dictionary mapping attributes to weights
     combined bool
     kwd other options passed by name to ArtistInfoData.adj_matrix
     """
 
     # TODO: combined should be part of the relations argument
-    def __init__(self, data, year, actors, relations, weights, combined=True, **kwd):
+    def __init__(self, data, year, actors, relations, combined=True, **kwd):
         self.relations = relations
         self.M = OrderedDict()
         self.V = None

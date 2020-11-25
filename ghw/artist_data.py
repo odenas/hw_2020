@@ -8,7 +8,6 @@ import numpy as np
 from tqdm import tqdm
 
 from .matrix import similarity_function
-from .weights import Weight
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +133,6 @@ class ArtistInfoData(object):
         self.sim_attributes = tuple(selector_functions)
 
     def adj_matrix(self, year, attr, actors, selector,
-                   weights=Weight(None, None).weights_of("film"),
                    similarity_function=similarity_function, lag=1000):
         log.info("filtering out career-less actors ...")
         data = {}
@@ -156,5 +154,5 @@ class ArtistInfoData(object):
             for a2 in V.keys():
                 j = V[a2]
                 op2 = selector(data[a2])
-                matrix[i, j] = similarity_function(op1, op2, weights)
+                matrix[i, j] = similarity_function(op1, op2)
         return V, matrix
