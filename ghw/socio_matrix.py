@@ -3,7 +3,7 @@ from collections import OrderedDict
 import logging
 
 from .matrix import Matrix
-from .artist_data import selector_functions, distance_functions
+from .artist_data import selector_functions, sim_functions
 
 
 log = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class SocioMatrix(Matrix):
         log.info("sociomatrix (%d actors) over relations:" % len(actors))
         for relname, relval in relations.items():
             v, m = data.adj_matrix(year, relval, actors,
-                                   selector_functions[relval], distance_functions[relval],
+                                   selector_functions[relval], sim_functions[relval],
                                    **kwd)
             self.M[relname] = m
             log.info("\t%s (%d actors)" % (relname, len(v)))

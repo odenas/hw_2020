@@ -1,34 +1,28 @@
 import logging
-import numpy as np
 from itertools import product
+
+import numpy as np
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import floyd_warshall
 
 from .matrix import Matrix
 
 log = logging.getLogger()
 
 
-def floyd(M):
+def floyd(dmat, **kwdargs):
     """
     The Floyd-Wallshall algorithm for the shortest path.
 
-    Because we work on similarity matrices and the
-    algorithm on distance matrices a conversion needs
-    to be made. I set the weight matrix to 1 / M.
+    see also:
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.floyd_warshall.html
 
-    :param array M: a (square) similarity matrix.
+    :param array dmat: distance matrix
     :return: the shortest path matrix w_{ij}.
     """
 
-    n = M.shape[0]
-    M = 1/M
-
-    if not weighted:
-        M[M > 0] = 1
-
-    # log.error("skipping ...")
-    for k in range(n):
-        M = np.minimum(M, np.add.outer(M[:, k], M[k, :]))
-    return M
+    shp = floyd_warshall(csr_matrix(dmat), **kwdargs)
+    return shp
 
 
 def closure(A, nA, B, nB):
@@ -76,7 +70,7 @@ def centrality(T, V, i):
     :param np.array T: tie strength matrix (nr. of shared films)
     :param dict V: maps artist_id to index
     :param int i: row index
-    :returns: :math:`\sum_j T'_{i,j}` where *T'* is the indicator
+    :returns: `sum_j T'_{i,j}` where *T'* is the indicator
         matrix of *T*
     """
 

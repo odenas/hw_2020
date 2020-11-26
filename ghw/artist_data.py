@@ -105,23 +105,23 @@ selector_functions = {
 }
 
 
-def dist_champ(i, j):
+def sim_champ(i, j):
     if i == j:
         return 0
-    return np.abs(i - j) / max(i, j)
+    return 1 - np.abs(i - j) / max(i, j)
 
 
-def dist_role(s1, s2):
-    if not s1:
-        return 0
-    return 1.001 - len(s1 & s2) / len(s1)
+def sim_role(s1, s2):
+    if s1:
+        return len(s1 & s2) / len(s1)
+    return 0
 
 
-distance_functions = {
-    'champ': dist_champ, 'nominated': dist_champ,
-    'role': dist_role, 'genre': dist_role,
-    'prod_house': dist_role, 'film': dist_role,
-    'year': dist_champ,
+sim_functions = {
+    'champ': sim_champ, 'nominated': sim_champ,
+    'role': sim_role, 'genre': sim_role,
+    'prod_house': sim_role, 'film': sim_role,
+    'year': sim_champ,
 }
 
 
@@ -152,10 +152,10 @@ class ArtistInfoData(object):
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
         self.sim_attributes = tuple(selector_functions)
 
-    def adj_matrix(self, year, attr, actors, selector, dist_func, lag=1000):
+    def adj_matrix(self, year, attr, actors, selector, sim_func, lag=1000):
         log.info("filtering out career-less actors ...")
         data = {}
-        for act in actors:
+        for act in tqdm(actors):
             career = list(filter(lambda r: (year - lag) < r.year < year, self.data.get(act, [])))
             if career:
                 data[act] = career
@@ -173,5 +173,5 @@ class ArtistInfoData(object):
             for a2 in V.keys():
                 j = V[a2]
                 op2 = selector(data[a2])
-                matrix[i, j] = dist_func(op1, op2)
+                matrix[i, j] = sim_func(op1, op2)
         return V, matrix
