@@ -1,6 +1,6 @@
 
-artist_data = "data/input/red_artist_data.csv"
-#artist_data = "data/input/formatted_full_artist_data.csv"
+#artist_data = "data/input/red_artist_data.csv"
+artist_data = "data/input/adata.db"
 
 years = [1951, 1952, 1953, 1954, 1955]
 #years = [1953]
@@ -8,11 +8,15 @@ relations = ["oscarnom", "experience", "champ", "film", "genre", "prodhouse", "r
 #relations = ["genre", "prodhouse"]
 metrics = ["cosine", "euclidean", "correlation"]
 #metrics = ["cosine"]
+#
+
+reports = expand("data/output/rp_{y}_{r}_{m}.csv", y=years, r=relations, m=metrics)
+tie_strengths = expand("data/output/ts_{y}_{r}.pkl", y=years, r=relations, m=metrics)
+socio_m = expand("data/output/sm_{y}_{r}.pkl", y=years, r=relations, m=metrics)
 
 rule all:
     input:
-        expand("data/output/rp_{y}_{r}_{m}.csv",
-               y=years, r=relations, m=metrics),
+        socio_m
 
 rule report:
     input:
@@ -24,7 +28,7 @@ rule report:
     output:
         "data/output/rp_{year}_{relation}_{metric}.csv"
     shell:
-        ("python {input} >{output}")
+        ("python {input} {output}")
 
 rule block_matrix:
     input:
@@ -55,25 +59,3 @@ rule socio_matrix:
         "data/output/sm_{year}_{relation}.pkl"
     shell:
         ("python {input} {output}")
-
-rule input_db:
-    input:
-        adata="data/input/formatted_full_artist_data.csv",
-        bdata="data/input/blacklist.csv"
-    output:
-        "data/input/all_data.db"
-    shell:
-        ("echo -e '"
-        ".mode csv\n"
-        ".import {input.adata} adata\n"
-        ".import {input.bdata} bdata\n"
-        ".quit\n' | sqlite3 {output}")
-
-
-rule format_adata:
-    input:
-        "scripts/format_full_artist_data.py", "data/input/full_artist_data.csv"
-    output:
-        protected("data/input/formatted_full_artist_data.csv")
-    shell:
-        ("python {input} --outfile {output}")

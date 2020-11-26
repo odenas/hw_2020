@@ -1,0 +1,164 @@
+
+from operator import attrgetter
+import pandas as pd
+from ghw.artist_data import ArtistInfoData
+
+
+#adata = "formatted_full_artist_data.csv"
+adata = "red_artist_data.csv"
+
+def file_reader(fname):
+    return ArtistInfoData.file_reader(fname, header=(not adata.startswith("red")))
+
+
+rule all:
+    input:
+        p="performances.csv",
+        a="artists.csv",
+        t="titles.csv",
+        g="genres.csv",
+        h="houses.csv",
+        r="roles.csv"
+    output:
+        "adata.db"
+    shell:
+        ("echo -e '"
+         ".mode csv\n"
+         "PRAGMA foreign_keys = ON;\n"
+         "CREATE TABLE artist(castid INTEGER PRIMARY KEY, name TEXT);\n"
+         ".import {input.a} artist --skip 1\n"
+         "CREATE TABLE title(id INTEGER PRIMARY KEY, title TEXT, year INTEGER, champ INTEGER);\n"
+         ".import {input.t} title --skip 1\n"
+         "CREATE TABLE genre(id INTEGER PRIMARY KEY, name TEXT);\n"
+         ".import {input.g} genre --skip 1\n"
+         "CREATE TABLE house(id INTEGER PRIMARY KEY, name TEXT);\n"
+         ".import {input.h} house --skip 1\n"
+         "CREATE TABLE role(id INTEGER PRIMARY KEY);\n"
+         ".import {input.r} role --skip 1\n"
+         "CREATE TABLE perf(\n"
+         "  id INTEGER PRIMARY KEY, \n"
+         "  artist INTEGER, \n"
+         "  title INTEGER, \n"
+         "  house INTEGER, \n"
+         "  nominated INTEGER, \n"
+         "  roles TEXT, \n"
+         "  genre TEXT,\n"
+         "  FOREIGN KEY(house) REFERENCES house(id),\n"
+         "  FOREIGN KEY(artist) REFERENCES artist(castid),\n"
+         "  FOREIGN KEY(title) REFERENCES title(id)\n"
+         ");\n"
+         ".import {input.p} perf --skip 1\n"
+         "' | sqlite3 {output}")
+
+
+rule performances:
+    input:
+        d=adata,
+        a="artists.csv",
+        t="titles.csv",
+        g="genres.csv",
+        h="houses.csv"
+    output:
+        "performances.csv"
+    run:
+        artists = dict(map(attrgetter("name", "castid"), pd.read_csv(str(input.a)).itertuples()))
+        titles = dict(map(attrgetter("title", "id"), pd.read_csv(str(input.t)).itertuples()))
+        genres = dict(map(attrgetter("name", "id"), pd.read_csv(str(input.g)).itertuples()))
+        houses = dict(map(attrgetter("name", "id"), pd.read_csv(str(input.h)).itertuples()))
+
+        data = []
+        for row in file_reader(str(input.d)):
+            if not row.prod_house:
+                print(row)
+                continue
+            if row.artist == 'ALLEN BORETZ':
+                continue
+            if not row.genre:
+                print(f"no genre in {row}")
+            perf = (artists[row.artist],
+                    titles[row.film],
+                    houses[row.prod_house],
+                    row.nominated,
+                    "-".join(map(str, row.role)),
+                    "-".join(str(genres[g]) for g in row.genre if g))
+            data.append(perf)
+        (pd.DataFrame(data, columns=['artist', 'title', 'house', 'nominated', 'roles', 'genre'])
+         .reset_index().rename(columns={'index': 'id'})
+         .to_csv(str(output), index=False))
+
+
+rule movie:
+    input:
+        adata
+    output:
+        "titles.csv"
+    run:
+        data = set()
+        for row in file_reader(str(input)):
+            data |= set([(row.film, row.year, int(row.champ))])
+        (pd.DataFrame(list(data), columns=['title', 'year', 'champ'])
+         .reset_index().rename(columns={'index': 'id'})
+         .to_csv(str(output), index=False))
+
+
+rule film:
+    input:
+        adata
+    output:
+        "artists.csv"
+    run:
+        data = set()
+        for row in file_reader(str(input)):
+            if row.artist == 'ALLEN BORETZ':
+                print("duplicate artist!!! " + row.artist)
+                continue
+            data |= set([(row.castid, row.artist)])
+        pd.DataFrame(list(data), columns=['castid', 'name']).to_csv(str(output), index=False)
+
+
+rule house:
+    input:
+        adata
+    output:
+        "houses.csv"
+    run:
+        data = set()
+        for row in file_reader(str(input)):
+            data |= set(filter(bool, [row.prod_house]))
+        pd.DataFrame(list(enumerate(data)), columns=['id', 'name']).to_csv(str(output), index=False)
+
+rule roles:
+    input:
+        adata
+    output:
+        "roles.csv"
+    run:
+        data = set()
+        for row in file_reader(str(input)):
+            data |= set(row.role)
+        pd.Series(list(data), name='name').to_csv(str(output), index=False)
+
+
+rule genres:
+    input:
+        adata
+    output:
+        "genres.csv"
+    run:
+        data = set()
+        for row in file_reader(str(input)):
+            data |= set(filter(bool, row.genre))
+        pd.DataFrame(list(enumerate(data)), columns=['id', 'name']).to_csv(str(output), index=False)
+
+
+rule format_full:
+    input:
+        "full_artist_data.csv"
+    output:
+        "formatted_full_artist_data.csv"
+    run:
+        cols = ["name", "role", "year", "nomination",
+                "castid", "i", "genre", "title", "champ",
+                "production_house"]
+        df = pd.read_csv(str(input))
+        df[cols].to_csv(str(output), index=False)
