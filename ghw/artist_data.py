@@ -105,6 +105,7 @@ selector_functions = {
 }
 
 
+import sqlite3
 class ArtistInfoData(object):
     """loads and maintains a collection of
     :py:class:`ArtistInfoRow` instances. An instance has
@@ -131,6 +132,20 @@ class ArtistInfoData(object):
                     invalid += 1
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
         self.sim_attributes = tuple(selector_functions)
+
+    @classmethod
+    def file_reader(cls, fname, factory=ArtistInfoRow._factory, skip_error=True, header=True):
+        line_iter = csv.reader(open(fname, 'rt', encoding='latin1'))
+        for i, line in enumerate(line_iter):
+            if header and i == 0:
+                continue
+            try:
+                yield factory(line)
+            except ValueError as e:
+                if skip_error:
+                    log.error(f"failed to parse {i+1}-th line: {line}")
+                else:
+                    raise e
 
     def adj_matrix(self, year, attr, actors, selector,
                    similarity_function=similarity_function, lag=1000):
