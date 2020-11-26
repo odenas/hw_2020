@@ -62,7 +62,7 @@ rule performances:
         "performances.csv"
     run:
         artists = dict(map(attrgetter("name", "castid"), pd.read_csv(str(input.a)).itertuples()))
-        titles = dict(map(attrgetter("title", "id"), pd.read_csv(str(input.t)).itertuples()))
+        titles = dict(((t, y), i) for t, y, i in map(attrgetter("title", "year", "id"), pd.read_csv(str(input.t)).itertuples()))
         genres = dict(map(attrgetter("name", "id"), pd.read_csv(str(input.g)).itertuples()))
         houses = dict(map(attrgetter("name", "id"), pd.read_csv(str(input.h)).itertuples()))
 
@@ -76,7 +76,7 @@ rule performances:
             if not row.genre:
                 print(f"no genre in {row}")
             perf = (artists[row.artist],
-                    titles[row.film],
+                    titles[(row.film, row.year)],
                     houses[row.prod_house],
                     row.nominated,
                     "-".join(map(str, row.role)),
