@@ -35,7 +35,7 @@ class SocioMatrix:
 
         if relation in {'champ', 'nominated', 'year'}:
             return sim_scalar
-        elif relation in {'role', 'genre', 'house', 'film'}:
+        elif relation in {'roles', 'genre', 'house', 'film'}:
             return sim_set
         elif relation == 'ts1':
             return lambda s1, s2: len(s1)
@@ -50,7 +50,7 @@ class SocioMatrix:
         return {
             'champ': len,
             'nominated': sum,
-            'role': lambda tl: set(reduce(concat, tl, ())),
+            'roles': lambda tl: set(reduce(concat, tl, ())),
             'genre': lambda tl: set(reduce(concat, tl, ())),
             'house': set,
             'film': set, 'ts1': set, 'ts2': set, 'ts3': set,
@@ -80,7 +80,7 @@ class SocioMatrix:
             """
 
         con = sqlite3.connect(dbpath)
-        if relation in ('role', 'genre'):
+        if relation in ('roles', 'genre'):
             df = (pd.read_sql_query(query, con)
                   .assign(relation=lambda x: x.relation.apply(unpack_dash_val)))
         else:

@@ -1,7 +1,10 @@
 import logging
 import numpy as np
 from itertools import product
+import pandas as pd
+import sqlite3
 
+from .affiliations import Affiliations
 from .matrix import Matrix
 
 log = logging.getLogger()
@@ -76,7 +79,7 @@ def centrality(T, V, i):
     :param np.array T: tie strength matrix (nr. of shared films)
     :param dict V: maps artist_id to index
     :param int i: row index
-    :returns: :math:`\sum_j T'_{i,j}` where *T'* is the indicator
+    :returns: :math:`sum_j T'_{i,j}` where *T'* is the indicator
         matrix of *T*
     """
 
@@ -136,41 +139,71 @@ class Report(object):
         :param dict weights: dictionary of the type attribute_value --> weight
     """
 
-    def __init__(self, year, adata, bdata, SM, BM, TS, dist_names, rel_names):
+    def __init__(self, year, dbpath, SM, BM, TS, dist_names, rel_names):
+        self._dbpath = dbpath
         self.header = self.__set_header(rel_names, dist_names)
-        self.A, self.B = adata, bdata
-        self.Y = year
-        self.actors = SM.V.keys()
+        self.affiliations = Affiliations()
+        self.B_data = dict(
+            ((row.sender, row.receiver, row.year), row)
+            for row in pd.read_sql_query('select * from trials',
+                                         sqlite3.connect('data/input/adata.db')).itertuples()
+        )
+
+        self.year = year
+        self.actors = SM.artists.keys()
 
         self.SM = SM
         self.BM = BM
 
-        self.namings_idx, self.namings = self.B.naming(self.actors, self.Y-1)
+        self.namings_idx, self.namings = self._naming(self.actors, self.year-1)
 
         self.tstrengths = list(TS)
-        self.V = self.tstrengths[0][0]
-        assert set(self.V.keys()) == set(self.SM.V.keys())
-        self.tstrengths = self.tstrengths[1]
+        self.V = self.tstrengths[0].artists
+        assert set(self.V.keys()) == set(self.SM.artists.keys())
         log.info("reporting on %d actors ..." % len(self.actors))
         log.info("\tbonacich centrality")
-        self.boncent = bonacich_centrality(self.tstrengths[0])
+        self.boncent = bonacich_centrality(self.tstrengths[0].matrix)
         log.info("\tweighted shortest paths...")
-        self.weighted_shpaths = floyd(self.tstrengths[0], weighted=True)
+        self.weighted_shpaths = floyd(self.tstrengths[0].matrix, weighted=True)
         log.info("\tshortest paths...")
-        self.shpaths = floyd(self.tstrengths[0], weighted=False)
+        self.shpaths = floyd(self.tstrengths[0].matrix, weighted=False)
 
         log.info("\ttriadic closure (1 of 4) ...")
-        self.tr1, self.tr1_idx = closure(self.tstrengths[0], self.V,
+        self.tr1, self.tr1_idx = closure(self.tstrengths[0].matrix, self.V,
                                          self.namings, self.namings_idx)
         log.info("\ttriadic closure (2 of 4) ...")
         self.tr2, self.tr2_idx = closure(self.namings, self.namings_idx,
-                                         self.tstrengths[0], self.V)
+                                         self.tstrengths[0].matrix, self.V)
         log.info("\ttriadic closure (3 of 4) ...")
         self.tr3, self.tr3_idx = closure(self.namings, self.namings_idx,
                                          self.namings, self.namings_idx)
         log.info("\ttriadic closure (4 of 4) ...")
-        self.tr4, self.tr4_idx = closure(self.tstrengths[0], self.V,
-                                         self.tstrengths[0], self.V)
+        self.tr4, self.tr4_idx = closure(self.tstrengths[0].matrix, self.V,
+                                         self.tstrengths[0].matrix, self.V)
+
+    def _naming(self, actors, year):
+        ai = dict(map(lambda t: (t[1], t[0]), enumerate(actors)))
+        n = len(actors)
+        m = np.zeros((n, n), dtype=np.int8)
+
+        df = pd.read_sql_query('select sender, receiver, year from trials',
+                               sqlite3.connect('data/input/adata.db'))
+        for row in df.itertuples():
+            if row.year <= year and (row.sender in ai) and (row.receiver in ai):
+                m[ai[row.sender], ai[row.receiver]] += 1
+                log.info("%d namings" % (np.sum(m)))
+        return ai, m
+
+    def _reciprocity(self, s, r, y):
+        trial = ((s, r, y) in self.B_data and self.B_data[(s, r, y)].trial or 1000)
+
+        def cond(n):
+            return ((n.sender, n.receiver) == (r, s) and
+                    ((n.year < y) or (n.year == y and n.trial < trial)))
+
+        event = list(filter(cond, self.B_data.values()))
+        assert len(event) < 2
+        return len(event), (len(event) and (y - event[0].year) or 0)
 
     def get(self, s, r, Y, t, receiver_card):
         def format_val(val):
@@ -186,7 +219,7 @@ class Report(object):
 
             if not np.isfinite(val):
                 return " "
-            if tval in (float, np.float32):
+            if tval in (float, np.float32, np.float64):
                 return "%.4f" % val
             elif tval in (int, np.int64, np.int8):
                 return "%d" % val
@@ -202,31 +235,37 @@ class Report(object):
             return 0
 
         resrow = (
-            (s, r, Y, t, ((s, r, Y) in self.B.data)) +
-            self.SM.get(s, r) +
+            (s, r, Y, t, ((s, r, Y) in self.B_data)) +
+            Matrix._get(s, r, [self.SM.matrix], self.SM.artists) +
             self.BM.get(s, r, None) +
             Matrix._get(s, -1, [self.namings], self.namings_idx) +
             Matrix._get(-1, r, [self.namings], self.namings_idx) +
-            self.B.reciprocity(s, r, self.Y) +
+            self._reciprocity(s, r, self.year) +
             # might be empty since dist_lst wants both s,r in V.keys()
-            Matrix._get(s, r, self.tstrengths, self.V) +
-            (self.A.corr(s, r), self.A.sim(s, r)) +
+            Matrix._get(s, r, [self.tstrengths[0].matrix,
+                               self.tstrengths[1].matrix,
+                               self.tstrengths[2].matrix], self.V) +
+            (self.affiliations.corr(s, r), self.affiliations.sim(s, r)) +
             Matrix._get(s, r, [self.weighted_shpaths, self.shpaths], self.V) +
             Matrix._get(s, r, [self.tr1], self.tr1_idx) +
             Matrix._get(s, r, [self.tr2], self.tr2_idx) +
             Matrix._get(s, r, [self.tr3], self.tr3_idx) +
             Matrix._get(s, r, [self.tr4], self.tr4_idx) +
             (receiver_card,) +
-            (centrality(self.tstrengths[0], self.V, s), centrality(self.tstrengths[0].T, self.V, r),
+            (centrality(self.tstrengths[0].matrix, self.V, s),
+             centrality(self.tstrengths[0].matrix.T, self.V, r),
                 bonCentral(s), bonCentral(r)) +
-            (self.A.corr_comm(s), self.A.corr_comm(r), self.A.sums(s), self.A.sums(r)) +
+            (self.affiliations.corr_comm(s),
+             self.affiliations.corr_comm(r),
+             self.affiliations.sums(s),
+             self.affiliations.sums(r)) +
             ()
         )
         assert len(resrow) == len(self.header), "%d != %d" % (len(resrow), len(self.header))
         return map(format_val, resrow)
 
     def __set_header(self, rel_names, dist_names):
-        __hdrel = ['combined'] + list(rel_names.keys())
+        __hdrel = [rel_names]
         header = ['sender', 'receiver', 'year', 'trial', 'naming']
         # return header
         header += map(lambda s: "similarity_%s" % s, __hdrel)

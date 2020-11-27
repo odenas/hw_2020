@@ -1,39 +1,37 @@
-
 import argparse
 import logging
 import os
+import sqlite3
 import sys
 
 from ghw import pklLoad, pklSave
-from ghw.blacklist_data import BlacklistData
 from ghw.block_matrix import BlockMatrix
+
+import pandas as pd
 
 log = logging.getLogger(__name__)
 
 
-def allSenders(bl_path, Y):
-    if not os.path.isfile(bl_path):
-        return None
-    B = BlacklistData(bl_path)
-    S = []
-    for ((s, y), t) in filter(lambda t: t[0][1] == Y, B.trials.items()):
-        S.append(s)
-    return list(set(S))
+def allSenders(dbpath, year):
+    query = f"select distinct sender from trials where year={year}"
+    log.info(f"{query}")
+    return pd.read_sql_query(query, sqlite3.connect(dbpath)).sender.tolist()
 
 
-def main(socio_matrix, distances, year):
-    block_matrix = BlockMatrix(socio_matrix, distances, allSenders(args.blacklist, year))
+def main(socio_matrix, dbpath, distances, year):
+    block_matrix = BlockMatrix(socio_matrix, distances, allSenders(dbpath, year))
     pklSave(args.output, block_matrix)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the Hollywood Blacklisting analysis.')
     parser.add_argument('matrix', type=str, help='Socio matrix')
-    parser.add_argument('blacklist', type=str, default=None, help='Blacklist data')
+    parser.add_argument('dbpath', type=str, help='Database')
     parser.add_argument('output', type=str, help='Output ')
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
 
-    distances = list(map(lambda s: (s.split(".")[0]), os.path.splitext(args.output)[0].split("_")[3:4]))
+    distances = list(map(lambda s: (s.split(".")[0]),
+                         os.path.splitext(args.output)[0].split("_")[3:4]))
     year = int(os.path.splitext(args.matrix)[0].split("_")[1])
-    sys.exit(main(pklLoad(args.matrix), distances, year))
+    sys.exit(main(pklLoad(args.matrix), args.dbpath, distances, year))
