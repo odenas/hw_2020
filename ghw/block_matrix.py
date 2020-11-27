@@ -161,19 +161,16 @@ class BlockMatrix(Matrix):
         self.distances = distances
 
         if actors is None:
-            actors = self.socio_matrix.V
+            actors = self.socio_matrix.artists
         else:  # some might have not had a career till this year
-            actors = set(actors) & set(self.socio_matrix.V.keys())
+            actors = set(actors) & set(self.socio_matrix.artists.keys())
         log.info("%d senders will be considered" % len(actors))
 
         log.info("blockmatrix over:")
         for dn in distances:
             log.info("\t{}".format(dn))
             df = dflist["%s_metric" % dn]
-            relation_matrices = (
-                [socio_matrix.M['combined']] +
-                list(map(lambda rn: socio_matrix.M[rn], socio_matrix.relations))
-            )
+            relation_matrices = [socio_matrix.matrix]
             self.M[dn] = self.__auto_distance(relation_matrices, df, actors)
 
     def get(self, s, r, dname=None, **kwd):
@@ -190,7 +187,7 @@ class BlockMatrix(Matrix):
                 raise ValueError(_msg % str(map(lambda m: str(m.shape), M)))
 
         DM = []
-        V = self.socio_matrix.V
+        V = self.socio_matrix.artists
         for m in M:
             sq_dmat = np.zeros((m.shape[0], m.shape[0]), np.float32)
             for a1, a2 in product(actors, V.keys()):

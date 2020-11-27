@@ -2,6 +2,7 @@
 from operator import attrgetter
 import pandas as pd
 from ghw.artist_data import ArtistInfoData
+from ghw.blacklist_data import BlacklistData
 
 
 #adata = "formatted_full_artist_data.csv"
@@ -18,7 +19,8 @@ rule all:
         t="titles.csv",
         g="genres.csv",
         h="houses.csv",
-        r="roles.csv"
+        r="roles.csv",
+        b="trials.csv"
     output:
         "adata.db"
     shell:
@@ -48,6 +50,17 @@ rule all:
          "  FOREIGN KEY(title) REFERENCES title(id)\n"
          ");\n"
          ".import {input.p} perf --skip 1\n"
+         "CREATE TABLE trials(\n"
+         "  sender INTEGER,\n"
+         "  receiver INTEGER,\n"
+         "  year INTEGER,\n"
+         "  trial INTEGER,\n"
+         "  date TEXT,\n"
+         "  PRIMARY KEY(sender, receiver, year),\n"
+         "  FOREIGN KEY(sender) REFERENCES artist(castid)\n"
+         "  --FOREIGN KEY(receiver) REFERENCES artist(castid)\n"
+         ");\n"
+         ".import {input.b} trials\n"
          "' | sqlite3 {output}")
 
 
@@ -149,6 +162,17 @@ rule genres:
         for row in file_reader(str(input)):
             data |= set(filter(bool, row.genre))
         pd.DataFrame(list(enumerate(data)), columns=['id', 'name']).to_csv(str(output), index=False)
+
+
+rule format_bl:
+    input:
+        "blacklist.csv"
+    output:
+        "trials.csv"
+    run:
+        df = (pd.DataFrame(list(map(attrgetter('sender', 'receiver', 'year', 'trial', 'date'),
+                           BlacklistData(str(input)).data.values())))
+              .to_csv(str(output), index=False, header=False))
 
 
 rule format_full:
