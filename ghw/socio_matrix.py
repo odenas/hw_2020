@@ -1,51 +1,96 @@
 
-from collections import OrderedDict
+from dataclasses import dataclass
 import logging
+from functools import reduce
+from operator import concat
+import sqlite3
 
-from .matrix import Matrix
-from .artist_data import selector_functions
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 
 log = logging.getLogger(__name__)
 
 
-class SocioMatrix(Matrix):
-    """matrix defined over the similarity (jaccard) measure. maintains
+@dataclass(eq=False)
+class SocioMatrix:
+    relation: str
+    year: int
+    matrix: np.array
+    artists: dict
+    lag: int = 1000
 
-    M an ordered dict of the type (relation_name) ---> matrix
-    V dict of the type (artist) --> index
+    @classmethod
+    def sim_functions(cls, relation):
+        def sim_set(s1, s2):
+            if s1:
+                return len(s1 & s2) / len(s1)
+            return 0.0
 
-    to initialize needs:
+        def sim_scalar(i, j):
+            return 1 - np.abs(i - j) / max(i, j)
 
-    data :py:class:`giacomo.hollywood.bmat.ArtistInfoData`
-    year int
-    actors iterable
-    relations a dictionary of the type (relation_name) --> attribute_name
-    combined bool
-    kwd other options passed by name to ArtistInfoData.adj_matrix
-    """
+        if relation in {'champ', 'nominated', 'year'}:
+            return sim_scalar
+        elif relation in {'role', 'genre', 'house', 'film'}:
+            return sim_set
+        raise ValueError(f"unknown relation {relation}")
 
-    # TODO: combined should be part of the relations argument
-    def __init__(self, data, year, actors, relations, combined=True, **kwd):
-        self.relations = relations
-        self.M = OrderedDict()
-        self.V = None
-        log.info("sociomatrix (%d actors) over relations:" % len(actors))
-        for relname, relval in relations.items():
-            v, m = data.adj_matrix(year, relval, actors, selector_functions[relval], **kwd)
-            self.M[relname] = m
-            log.info("\t%s (%d actors)" % (relname, len(v)))
-        if not self.V:
-            self.V = v
-        if set(v.keys()) < set(self.V.keys()):
-            self.V = v
+    @classmethod
+    def selector_functions(cls, relation):
+        return {
+            'champ': len,
+            'nominated': sum,
+            'role': lambda tl: set(reduce(concat, tl, ())),
+            'genre': lambda tl: set(reduce(concat, tl, ())),
+            'house': set,
+            'film': set,
+            'year': lambda tl: len(set(tl))}[relation]
 
-        if combined:
-            N = float(len(self.M))
-            self.M["combined"] = sum(self.M.values()) / N
+    @classmethod
+    def _get_df(cls, dbpath, relation, year):
+        def unpack_dash_val(val):
+            try:
+                return tuple(map(int, val.split('-')))
+            except ValueError:
+                return ()
 
-    def get(self, s, r, **kwd):
-        """calls :py:func:`Matrix._get` on all sociomatrices"""
+        query = f"""select
+        artist, {relation} as relation
+        from perf join title on title.id = perf.title
+        where year > {year - cls.lag} and year < {year}
+        """
 
-        mlist = [self.M['combined']] + list(map(lambda rn: self.M[rn], self.relations))
-        return self._get(s, r, mlist, self.V, **kwd)
+        con = sqlite3.connect(dbpath)
+        if relation in ('role', 'genre'):
+            df = (pd.read_sql_query(query, con)
+                  .assign(relation=lambda x: x.relation.apply(unpack_dash_val)))
+        else:
+            df = pd.read_sql_query(query, con)
+        return df
+
+    @classmethod
+    def from_db(cls, dbpath, relation, year):
+        df = cls._get_df(dbpath, relation, year)
+        log.info("%d rows", df.shape[0])
+
+        sel_f = cls.selector_functions(relation)
+        ddf = (df.groupby('artist')
+               .aggregate(sel_f)
+               .reset_index().reset_index())
+        log.info("%d actors", ddf.shape[0])
+        v, m = cls.adj_matrix(ddf, relation)
+        return cls(relation, year, m, v)
+
+    @classmethod
+    def adj_matrix(cls, ddf, relation):
+        sim_f = cls.sim_functions(relation)
+
+        m = np.zeros((ddf.shape[0], ddf.shape[0]))
+
+        cprod = ddf.assign(key=1).merge(ddf.assign(key=1), on='key').drop('key', 1)
+        for t in tqdm(cprod.itertuples()):
+            m[t.index_x, t.index_y] = sim_f(t.relation_x, t.relation_y)
+        v = dict(t for _, t in ddf[['artist', 'index']].iterrows())
+        return v, m
