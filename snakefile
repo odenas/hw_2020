@@ -4,7 +4,8 @@ artist_data = "data/input/adata.db"
 
 years = [1951, 1952, 1953, 1954, 1955]
 #years = [1953]
-relations = ["oscarnom", "experience", "champ", "film", "genre", "prodhouse", "role"]
+relations = ["nominated", "experience", "champ", "film", "genre", "house", "role",
+             "ts1", "ts2", "ts3"]
 #relations = ["genre", "prodhouse"]
 metrics = ["cosine", "euclidean", "correlation"]
 #metrics = ["cosine"]
@@ -37,17 +38,6 @@ rule block_matrix:
         "data/input/blacklist.csv"
     output:
         "data/output/bm_{year}_{relation}_{metric}.pkl"
-    shell:
-        ("python {input} {output}")
-
-
-rule tie_strengths:
-    input:
-        "scripts/tie_strengths.py",
-        artist_data,
-        "data/output/sm_{year}_{relation}.pkl"
-    output:
-        "data/output/ts_{year}_{relation}.pkl"
     shell:
         ("python {input} {output}")
 

@@ -78,7 +78,7 @@ rule performances:
             perf = (artists[row.artist],
                     titles[(row.film, row.year)],
                     houses[row.prod_house],
-                    row.nominated,
+                    int(row.nominated),
                     "-".join(map(str, row.role)),
                     "-".join(str(genres[g]) for g in row.genre if g))
             data.append(perf)

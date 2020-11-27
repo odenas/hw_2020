@@ -29,12 +29,20 @@ class SocioMatrix:
             return 0.0
 
         def sim_scalar(i, j):
+            if i == j == 0:
+                return 0
             return 1 - np.abs(i - j) / max(i, j)
 
         if relation in {'champ', 'nominated', 'year'}:
             return sim_scalar
         elif relation in {'role', 'genre', 'house', 'film'}:
             return sim_set
+        elif relation == 'ts1':
+            return lambda s1, s2: len(s1)
+        elif relation == 'ts2':
+            return lambda s1, s2: len(s2)
+        elif relation == 'ts3':
+            return lambda s1, s2: len(s1 & s2)
         raise ValueError(f"unknown relation {relation}")
 
     @classmethod
@@ -45,7 +53,7 @@ class SocioMatrix:
             'role': lambda tl: set(reduce(concat, tl, ())),
             'genre': lambda tl: set(reduce(concat, tl, ())),
             'house': set,
-            'film': set,
+            'film': set, 'ts1': set, 'ts2': set, 'ts3': set,
             'year': lambda tl: len(set(tl))}[relation]
 
     @classmethod
@@ -56,11 +64,20 @@ class SocioMatrix:
             except ValueError:
                 return ()
 
-        query = f"""select
-        artist, {relation} as relation
-        from perf join title on title.id = perf.title
-        where year > {year - cls.lag} and year < {year}
-        """
+        # tie strengths are a special case for film
+        if relation in ('ts1', 'ts2', 'ts3', 'film'):
+            relation = 'film'
+            query = f"""select
+            artist, perf.title as relation
+            from perf join title on title.id = perf.title
+            where year > {year - cls.lag} and year < {year}
+            """
+        else:
+            query = f"""select
+            artist, {relation} as relation
+            from perf join title on title.id = perf.title
+            where year > {year - cls.lag} and year < {year}
+            """
 
         con = sqlite3.connect(dbpath)
         if relation in ('role', 'genre'):
@@ -90,7 +107,7 @@ class SocioMatrix:
         m = np.zeros((ddf.shape[0], ddf.shape[0]))
 
         cprod = ddf.assign(key=1).merge(ddf.assign(key=1), on='key').drop('key', 1)
-        for t in tqdm(cprod.itertuples()):
+        for t in tqdm(cprod.itertuples(), total=m.shape[0]**2):
             m[t.index_x, t.index_y] = sim_f(t.relation_x, t.relation_y)
         v = dict(t for _, t in ddf[['artist', 'index']].iterrows())
         return v, m
