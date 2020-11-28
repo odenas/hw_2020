@@ -4,3 +4,13 @@ dev_env
 ghw.egg-info
 .snakemake
 .ipynb_checkpoints
+egg_info/
+
+Untitled.ipynb
+data/input/adata.db
+data/input/*.csv
+data/input/snakefile.py
+data/output.baseline/
+data/output/
+
+

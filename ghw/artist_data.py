@@ -105,26 +105,7 @@ selector_functions = {
 }
 
 
-def sim_champ(i, j):
-    if i == j:
-        return 0
-    return 1 - np.abs(i - j) / max(i, j)
-
-
-def sim_role(s1, s2):
-    if s1:
-        return len(s1 & s2) / len(s1)
-    return 0
-
-
-sim_functions = {
-    'champ': sim_champ, 'nominated': sim_champ,
-    'role': sim_role, 'genre': sim_role,
-    'prod_house': sim_role, 'film': sim_role,
-    'year': sim_champ,
-}
-
-
+import sqlite3
 class ArtistInfoData(object):
     """loads and maintains a collection of
     :py:class:`ArtistInfoRow` instances. An instance has
@@ -152,7 +133,22 @@ class ArtistInfoData(object):
         log.info("read %d actors discarded %d ..." % (len(self.data), invalid))
         self.sim_attributes = tuple(selector_functions)
 
-    def adj_matrix(self, year, attr, actors, selector, sim_func, lag=1000):
+    @classmethod
+    def file_reader(cls, fname, factory=ArtistInfoRow._factory, skip_error=True, header=True):
+        line_iter = csv.reader(open(fname, 'rt', encoding='latin1'))
+        for i, line in enumerate(line_iter):
+            if header and i == 0:
+                continue
+            try:
+                yield factory(line)
+            except ValueError as e:
+                if skip_error:
+                    log.error(f"failed to parse {i+1}-th line: {line}")
+                else:
+                    raise e
+
+    def adj_matrix(self, year, attr, actors, selector,
+                   similarity_function=similarity_function, lag=1000):
         log.info("filtering out career-less actors ...")
         data = {}
         for act in tqdm(actors):
