@@ -1,13 +1,14 @@
 import logging
 import numpy as np
 from itertools import product
+
 import pandas as pd
-import sqlite3
 
 from .affiliations import Affiliations
 from .matrix import Matrix
+from .db import Db
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 def floyd(M, weighted):
@@ -145,12 +146,11 @@ class Report(object):
         self.affiliations = Affiliations()
         self.B_data = dict(
             ((row.sender, row.receiver, row.year), row)
-            for row in pd.read_sql_query('select * from trials',
-                                         sqlite3.connect('data/input/adata.db')).itertuples()
+            for row in self.Db.tb("trials").itertuples()
         )
 
         self.year = year
-        self.actors = SM.artists.keys()
+        self.actors = self.Db.all_actor_ids
 
         self.SM = SM
         self.BM = BM
@@ -181,17 +181,37 @@ class Report(object):
         self.tr4, self.tr4_idx = closure(self.tstrengths[0].matrix, self.V,
                                          self.tstrengths[0].matrix, self.V)
 
+    @property
+    def Db(self):
+        return Db.from_path(self._dbpath)
+
+    def row_iter(self, receivers):
+        df1 = self.Db.query_as_df(
+            f"select sender as s, year, trial from trials where year={self.year}"
+        )
+        df2 = self.Db.query_as_df(
+            f"select castid as s, year, trial from unfriendly where year={self.year}"
+        )
+        trials = dict(((r.s, r.year), r.trial)
+                      for r in pd.concat([df1, df2]).itertuples())
+        receiver_card = set()
+        for sy, t in trials.items():
+            for r in receivers:
+                if sy[0] == r:
+                    continue
+                _out_row = self.get(sy[0], r, sy[1], t, len(receiver_card))
+                yield _out_row
+                receiver_card |= set([r])
+
     def _naming(self, actors, year):
         ai = dict(map(lambda t: (t[1], t[0]), enumerate(actors)))
         n = len(actors)
         m = np.zeros((n, n), dtype=np.int8)
 
-        df = pd.read_sql_query('select sender, receiver, year from trials',
-                               sqlite3.connect('data/input/adata.db'))
+        df = self.Db.query_as_df("select sender, receiver, year from trials")
         for row in df.itertuples():
             if row.year <= year and (row.sender in ai) and (row.receiver in ai):
                 m[ai[row.sender], ai[row.receiver]] += 1
-                log.info("%d namings" % (np.sum(m)))
         return ai, m
 
     def _reciprocity(self, s, r, y):
