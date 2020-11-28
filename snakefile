@@ -6,7 +6,7 @@ years = [1951, 1952, 1953, 1954, 1955]
 years = [1953]
 relations = ["nominated", "year", "champ", "film", "genre", "house", "roles"]
 ts = ["ts1", "ts2", "ts3"]
-relations = ["genre", "house"]
+relations = ["genre"]
 metrics = ["cosine", "euclidean", "correlation"]
 metrics = ["cosine"]
 #

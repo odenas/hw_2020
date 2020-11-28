@@ -1,15 +1,34 @@
 
 from operator import attrgetter
+from configparser import ConfigParser
 import pandas as pd
 from ghw.artist_data import ArtistInfoData
 from ghw.blacklist_data import BlacklistData
-
+from ghw.db import Db
 
 #adata = "formatted_full_artist_data.csv"
 adata = "red_artist_data.csv"
 
 def file_reader(fname):
     return ArtistInfoData.file_reader(fname, header=(not adata.startswith("red")))
+
+
+def load_u(cfg):
+    def parse_unfriendly(t):
+        k, v = t
+        an, y, t = v.split("\t")
+        return (int(k), int(y), float(t))
+
+    CFG = ConfigParser()
+    CFG.read_file(open(cfg))
+    unfriendly = list(map(parse_unfriendly, CFG.items("UNFRIENDLY")))
+    return unfriendly
+
+def load_g(cfg):
+    CFG = ConfigParser()
+    CFG.read_file(open(cfg))
+    gray_list = list(map(int, CFG.get("GENERAL", "gray_list").split()))
+    return gray_list
 
 
 rule all:
@@ -20,7 +39,9 @@ rule all:
         g="genres.csv",
         h="houses.csv",
         r="roles.csv",
-        b="trials.csv"
+        b="trials.csv",
+        u="unfriendly.csv",
+        gr="gray.csv"
     output:
         "adata.db"
     shell:
@@ -61,6 +82,16 @@ rule all:
          "  --FOREIGN KEY(receiver) REFERENCES artist(castid)\n"
          ");\n"
          ".import {input.b} trials\n"
+         "CREATE TABLE unfriendly(\n"
+         "  castid int PRIMARY KEY,\n"
+         "  year int,\n"
+         "  trial int\n"
+         ");\n"
+         ".import {input.u} unfriendly --skip 1\n"
+         "CREATE TABLE gray(\n"
+         "  castid int PRIMARY KEY\n"
+         ");\n"
+         ".import {input.gr} gray --skip 1\n"
          "' | sqlite3 {output}")
 
 
@@ -92,8 +123,8 @@ rule performances:
                     titles[(row.film, row.year)],
                     houses[row.prod_house],
                     int(row.nominated),
-                    "-".join(map(str, row.role)),
-                    "-".join(str(genres[g]) for g in row.genre if g))
+                    Db.encode(row.role),
+                    Db.encode(genres[g] for g in row.genre if g))
             data.append(perf)
         (pd.DataFrame(data, columns=['artist', 'title', 'house', 'nominated', 'roles', 'genre'])
          .reset_index().rename(columns={'index': 'id'})
@@ -114,19 +145,39 @@ rule movie:
          .to_csv(str(output), index=False))
 
 
-rule film:
+rule artist:
     input:
-        adata
+        a=adata
     output:
         "artists.csv"
     run:
         data = set()
-        for row in file_reader(str(input)):
+        for row in file_reader(str(input.a)):
             if row.artist == 'ALLEN BORETZ':
                 print("duplicate artist!!! " + row.artist)
                 continue
             data |= set([(row.castid, row.artist)])
-        pd.DataFrame(list(data), columns=['castid', 'name']).to_csv(str(output), index=False)
+        da = pd.DataFrame(list(data), columns=['castid', 'name']).to_csv(str(output), index=False)
+
+
+rule unfriendly_artists:
+    input:
+        "conf.cfg"
+    output:
+        "unfriendly.csv"
+    run:
+        (pd.DataFrame(load_u(str(input)), columns=['castid', 'year', 'trial'])
+         .to_csv(str(output), index=False))
+
+rule gray_artists:
+    input:
+        "conf.cfg"
+    output:
+        "gray.csv"
+    run:
+        (pd.DataFrame(load_g(str(input)), columns=['castid'])
+         .to_csv(str(output), index=False))
+
 
 
 rule house:

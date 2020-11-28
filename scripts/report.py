@@ -4,9 +4,9 @@ import logging
 
 import argparse
 import pandas as pd
-import sqlite3
 
 from ghw import pklLoad
+from ghw.db import Db
 from ghw.report import Report
 
 
@@ -14,18 +14,17 @@ log = logging.getLogger(__name__)
 
 
 def row_iter(report, year, receivers):
-    df = pd.read_sql_query(
-        f"""select sender, year, trial, receiver
-         from trials
-         where year={year} and sender != receiver
-         """,
-        sqlite3.connect('data/input/adata.db')
-    )
-
+    db = Db.from_path(report._dbpath)
+    df1 = db.query_as_df(f"select sender as s, year, trial from trials where year = {year}")
+    df2 = db.query_as_df(f"select castid as s, year, trial from unfriendly where year = {year}")
+    trials = dict(((r.s, r.year), r.trial)
+                  for r in pd.concat([df1, df2]).itertuples())
     receiver_card = set()
-    for row in df.itertuples():
+    for sy, t in trials.items():
         for r in receivers:
-            _out_row = report.get(row.sender, r, row.year, row.trial, len(receiver_card))
+            if sy[0] == r:
+                continue
+            _out_row = report.get(sy[0], r, sy[1], t, len(receiver_card))
             yield _out_row
             receiver_card |= set([r])
 

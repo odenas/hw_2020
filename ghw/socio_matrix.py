@@ -3,11 +3,11 @@ from dataclasses import dataclass
 import logging
 from functools import reduce
 from operator import concat
-import sqlite3
 
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
+
+from .db import Db
 
 
 log = logging.getLogger(__name__)
@@ -58,12 +58,6 @@ class SocioMatrix:
 
     @classmethod
     def _get_df(cls, dbpath, relation, year):
-        def unpack_dash_val(val):
-            try:
-                return tuple(map(int, val.split('-')))
-            except ValueError:
-                return ()
-
         # tie strengths are a special case for film
         if relation in ('ts1', 'ts2', 'ts3', 'film'):
             relation = 'film'
@@ -79,12 +73,9 @@ class SocioMatrix:
             where year > {year - cls.lag} and year < {year}
             """
 
-        con = sqlite3.connect(dbpath)
+        df = Db.from_path(dbpath).query_as_df(query)
         if relation in ('roles', 'genre'):
-            df = (pd.read_sql_query(query, con)
-                  .assign(relation=lambda x: x.relation.apply(unpack_dash_val)))
-        else:
-            df = pd.read_sql_query(query, con)
+            df = (df.assign(relation=lambda x: x.relation.apply(Db.decode)))
         return df
 
     @classmethod
