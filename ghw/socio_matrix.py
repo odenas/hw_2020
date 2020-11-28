@@ -21,6 +21,16 @@ class SocioMatrix:
     artists: dict
     lag: int = 1000
 
+    @property
+    def pkl_fname(self):
+        return f"sm_{self.year}_{self.relation}.pkl"
+
+    @classmethod
+    def parse_fname(self, path):
+        fname, ext = os.path.splitext(os.path.basename(path))
+        p, y, r = fname.split("_")
+        return int(y), r
+
     @classmethod
     def sim_functions(cls, relation):
         def sim_set(s1, s2):
@@ -88,17 +98,18 @@ class SocioMatrix:
                .aggregate(sel_f)
                .reset_index().reset_index())
         log.info("%d actors", ddf.shape[0])
-        v, m = cls.adj_matrix(ddf, relation)
+        sim_f = cls.sim_functions(relation)
+        m = cls._adj_matrix(ddf.relation, sim_f)
+        v = dict(t for _, t in ddf[['artist', 'index']].iterrows())
         return cls(relation, year, m, v)
 
     @classmethod
-    def adj_matrix(cls, ddf, relation):
-        sim_f = cls.sim_functions(relation)
+    def _adj_matrix(cls, array, sim_f):
 
-        m = np.zeros((ddf.shape[0], ddf.shape[0]))
-
-        cprod = ddf.assign(key=1).merge(ddf.assign(key=1), on='key').drop('key', 1)
-        for t in tqdm(cprod.itertuples(), total=m.shape[0]**2):
-            m[t.index_x, t.index_y] = sim_f(t.relation_x, t.relation_y)
-        v = dict(t for _, t in ddf[['artist', 'index']].iterrows())
-        return v, m
+        m = np.zeros((array.shape[0], array.shape[0]))
+        for i, row in tqdm(enumerate(array), total=m.shape[0]):
+            for j, col in enumerate(array):
+                if i == j:
+                    continue
+                m[i, j] = sim_f(row, col)
+        return m
