@@ -3,16 +3,17 @@
 artist_data = "data/input/adata.db"
 
 years = [1951, 1952, 1953, 1954, 1955]
-#years = [1953]
+years = [1953]
 relations = ["nominated", "year", "champ", "film", "genre", "house", "roles"]
 ts = ["ts1", "ts2", "ts3"]
-#relations = ["genre", "prodhouse"]
+relations = ["genre", "house"]
 metrics = ["cosine", "euclidean", "correlation"]
-#metrics = ["cosine"]
+metrics = ["cosine"]
 #
 
 wildcard_constraints:
-    relation="(" + ")|(".join(relations) + ")"
+    relation="(" + ")|(".join(relations) + ")",
+    trel="(" + ")|(".join(ts) + ")"
 
 reports = expand("data/output/rp_{y}_{r}_{m}.csv", y=years, r=relations, m=metrics)
 bmats = expand("data/output/bm_{y}_{r}_{m}.pkl", y=years, r=relations, m=metrics)
@@ -42,6 +43,15 @@ rule block_matrix:
         artist_data
     output:
         "data/output/bm_{year}_{relation}_{metric}.pkl"
+    shell:
+        ("python {input} {output}")
+
+rule ts_socio_matrix:
+    input:
+        "scripts/socio_matrix.py",
+        artist_data
+    output:
+        "data/output/sm_{year}_{trel}.pkl"
     shell:
         ("python {input} {output}")
 
