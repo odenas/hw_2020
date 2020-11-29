@@ -1,14 +1,12 @@
 
 import logging
 import warnings
-from functools import reduce
-from operator import concat
-from itertools import product
-
+import os
+from dataclasses import dataclass
 
 import numpy as np
 
-from .matrix import Matrix
+from .socio_matrix import SocioMatrix
 
 log = logging.getLogger()
 
@@ -153,46 +151,30 @@ dflist = {
 }
 
 
-class BlockMatrix(Matrix):
-    def __init__(self, socio_matrix, distances, actors=None):
-        self.socio_matrix = socio_matrix
+@dataclass
+class BMat:
+    sm: SocioMatrix
+    distance: str
+    matrix: np.array
 
-        self.M = {}
-        self.distances = distances
+    @classmethod
+    def dmat(cls, m, metric_f):
+        dmat = np.ones_like(m, dtype=np.float32)
+        for i in range(dmat.shape[0]):
+            for j in range(dmat.shape[0]):
+                if i >= j:
+                    continue
+                dmat[i, j] = metric_f(i, j, m)
+                dmat[j, i] = dmat[i, j]
+        return dmat
 
-        if actors is None:
-            actors = self.socio_matrix.artists
-        else:  # some might have not had a career till this year
-            actors = set(actors) & set(self.socio_matrix.artists.keys())
-        log.info("%d senders will be considered" % len(actors))
+    @property
+    def pkl_fname(self):
+        year, relation = self.sm.parse_fname(self.sm.pkl_fname)
+        return f"bm_{year}_{relation}_{self.distance}.pkl"
 
-        log.info("blockmatrix over:")
-        for dn in distances:
-            log.info("\t{}".format(dn))
-            df = dflist["%s_metric" % dn]
-            relation_matrices = [socio_matrix.matrix]
-            self.M[dn] = self.__auto_distance(relation_matrices, df, actors)
-
-    def get(self, s, r, dname=None, **kwd):
-        V = self.socio_matrix.artists
-        if dname:
-            return self._get(s, r, self.M[dname], V, **kwd)
-        return reduce(concat,
-                      map(lambda dn: self._get(s, r, self.M[dn], V, **kwd), self.distances))
-
-    def __auto_distance(self, M, metric_f, actors):
-        for m in M[1:]:
-            if m.shape != M[0].shape:
-                _msg = "incompatible sociomatrix sizes: %s"
-                raise ValueError(_msg % str(map(lambda m: str(m.shape), M)))
-
-        DM = []
-        V = self.socio_matrix.artists
-        for m in M:
-            sq_dmat = np.zeros((m.shape[0], m.shape[0]), np.float32)
-            for a1, a2 in product(actors, V.keys()):
-                i, j = V[a1], V[a2]
-                sq_dmat[i, j] = metric_f(i, j, m)
-                sq_dmat[j, i] = sq_dmat[i, j]
-            DM.append(sq_dmat)
-        return DM
+    @classmethod
+    def parse_fname(cls, path):
+        fname, ext = os.path.splitext(os.path.basename(path))
+        p, y, r, d = fname.split("_")
+        return int(y), r, d

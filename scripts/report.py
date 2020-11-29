@@ -8,6 +8,7 @@ import pandas as pd
 from ghw import pklLoad
 from ghw.db import Db
 from ghw.report import Report
+from ghw.block_matrix import BMat
 
 
 log = logging.getLogger(__name__)
@@ -29,7 +30,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
 
-    year = int(args.sm.split("_")[1])
+    year, dmetric, relation = BMat.parse_fname(args.bm)
+
     log.info("loading socio matrix")
     SM = pklLoad(args.sm)
     log.info("loading block matrix")
@@ -37,4 +39,4 @@ if __name__ == '__main__':
     log.info("loading tie strengths")
     TS = list(map(pklLoad, args.ts))
 
-    main(Report(year, args.dbpath, SM, BM, TS, BM.distances, SM.relation), args.output)
+    main(Report(year, args.dbpath, SM, BM, TS, [dmetric], relation), args.output)
