@@ -22,7 +22,16 @@ socio_m = expand("data/output/sm_{y}_{r}.pkl", y=years, r=relations, m=metrics)
 
 rule all:
     input:
-        reports
+        "data/output/report.csv"
+
+rule full_report:
+    input:
+        s="scripts/merge_reports.py",
+        r=reports
+    output:
+        "data/output/report.csv"
+    shell:
+        ("python {input.s} --skip_missing `dirname {input.r[0]}` {output}")
 
 rule report:
     input:
