@@ -9,7 +9,7 @@ ts = ["ts1", "ts2", "ts3"]
 relations = ["genre"]
 metrics = ["cosine", "euclidean", "correlation"]
 metrics = ["cosine"]
-#
+
 
 wildcard_constraints:
     relation="(" + ")|(".join(relations) + ")",
@@ -17,8 +17,8 @@ wildcard_constraints:
 
 reports = expand("data/output/rp_{y}_{r}_{m}.csv", y=years, r=relations, m=metrics)
 bmats = expand("data/output/bm_{y}_{r}_{m}.pkl", y=years, r=relations, m=metrics)
-tie_strengths = expand("data/output/ts_{y}_{r}.pkl", y=years, r=relations, m=metrics)
-socio_m = expand("data/output/sm_{y}_{r}.pkl", y=years, r=relations + ts, m=metrics)
+tie_strengths = expand("data/output/sm_{y}_{r}.pkl", y=years, r=ts, m=metrics)
+socio_m = expand("data/output/sm_{y}_{r}.pkl", y=years, r=relations, m=metrics)
 
 rule all:
     input:
