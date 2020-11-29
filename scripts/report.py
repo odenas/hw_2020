@@ -6,8 +6,8 @@ import argparse
 import pandas as pd
 
 from ghw import pklLoad
-from ghw.db import Db
 from ghw.report import Report
+from ghw.block_matrix import BMat
 
 
 log = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 def main(report, out_file):
     log.info("dumping ...")
-    (pd.DataFrame(list(report.row_iter(SM.artists)), columns=report.header)
+    (pd.DataFrame(list(report.row_iter(report.SM.artists)), columns=report.header)
      .to_csv(out_file, index=False))
 
 
@@ -29,12 +29,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
 
-    year = int(args.sm.split("_")[1])
-    log.info("loading socio matrix")
-    SM = pklLoad(args.sm)
-    log.info("loading block matrix")
-    BM = pklLoad(args.bm)
-    log.info("loading tie strengths")
-    TS = list(map(pklLoad, args.ts))
-
-    main(Report(year, args.dbpath, SM, BM, TS, BM.distances, SM.relation), args.output)
+    year, dmetric, relation = BMat.parse_fname(args.bm)
+    main(Report(year, args.dbpath, pklLoad(args.sm), pklLoad(args.bm), list(map(pklLoad, args.ts)),
+                [dmetric], relation), args.output)

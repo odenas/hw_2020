@@ -248,7 +248,7 @@ class Report(object):
         resrow = (
             (s, r, Y, t, ((s, r, Y) in self.B_data)) +
             Matrix._get(s, r, [self.SM.matrix], self.SM.artists) +
-            self.BM.get(s, r, None) +
+            (self.BM.matrix[self.BM.sm.artists[s], self.BM.sm.artists[r]],) +
             Matrix._get(s, -1, [self.namings], self.namings_idx) +
             Matrix._get(-1, r, [self.namings], self.namings_idx) +
             self._reciprocity(s, r, self.year) +
