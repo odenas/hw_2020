@@ -156,10 +156,8 @@ class Report(object):
         log.info("reporting on %d actors ..." % len(self.actors))
         log.info("\tbonacich centrality")
         self.boncent = bonacich_centrality(self.tstrengths[0].matrix)
-        log.info("\tweighted shortest paths...")
-        self.weighted_shpaths = floyd(self.tstrengths[0].matrix, weighted=True)
         log.info("\tshortest paths...")
-        self.shpaths = floyd(self.tstrengths[0].matrix, weighted=False)
+        self.shpaths = floyd(self.tstrengths[0].matrix)
 
         log.info("\ttriadic closure (1 of 4) ...")
         self.tr1, self.tr1_idx = closure(self.tstrengths[0].matrix, self.V,
@@ -259,7 +257,7 @@ class Report(object):
                                self.tstrengths[1].matrix,
                                self.tstrengths[2].matrix], self.V) +
             (self.affiliations.corr(s, r), self.affiliations.sim(s, r)) +
-            Matrix._get(s, r, [self.weighted_shpaths, self.shpaths], self.V) +
+            Matrix._get(s, r, [self.shpaths], self.V) +
             Matrix._get(s, r, [self.tr1], self.tr1_idx) +
             Matrix._get(s, r, [self.tr2], self.tr2_idx) +
             Matrix._get(s, r, [self.tr3], self.tr3_idx) +
