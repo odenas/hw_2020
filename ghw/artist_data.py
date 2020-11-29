@@ -151,7 +151,7 @@ class ArtistInfoData(object):
                    similarity_function=similarity_function, lag=1000):
         log.info("filtering out career-less actors ...")
         data = {}
-        for act in actors:
+        for act in tqdm(actors):
             career = list(filter(lambda r: (year - lag) < r.year < year, self.data.get(act, [])))
             if career:
                 data[act] = career
@@ -169,5 +169,5 @@ class ArtistInfoData(object):
             for a2 in V.keys():
                 j = V[a2]
                 op2 = selector(data[a2])
-                matrix[i, j] = similarity_function(op1, op2)
+                matrix[i, j] = sim_func(op1, op2)
         return V, matrix

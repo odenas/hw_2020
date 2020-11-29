@@ -76,11 +76,10 @@ def load_report(path):
         'comm_corr_s', 'comm_corr_r', 'summ_s', 'summ_r',
         "shortest_path"
     ]
-    df = pd.read_csv(path, delimiter=", ", na_values=[' '], engine='python')[_df_cols]
+    df = pd.read_csv(path)[_df_cols]
     return df.rename(columns={'tie_strength_sender_den': 'ts_send',
                               'tie_strength_receiver_den': 'ts_receive',
-                              'tie_strength_intersect': 'ts_interesction'
-                              })
+                              'tie_strength_intersect': 'ts_interesction'})
 
 
 def main(in_dir, out_name, skip):

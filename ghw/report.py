@@ -1,6 +1,9 @@
 import logging
-import numpy as np
 from itertools import product
+
+import numpy as np
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import floyd_warshall
 
 import pandas as pd
 
@@ -11,28 +14,19 @@ from .db import Db
 log = logging.getLogger(__name__)
 
 
-def floyd(M, weighted):
+def floyd(dmat, **kwdargs):
     """
     The Floyd-Wallshall algorithm for the shortest path.
 
-    Because we work on similarity matrices and the
-    algorithm on distance matrices a conversion needs
-    to be made. I set the weight matrix to 1 / M.
+    see also:
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.floyd_warshall.html
 
-    :param array M: a (square) similarity matrix.
+    :param array dmat: distance matrix
     :return: the shortest path matrix w_{ij}.
     """
 
-    n = M.shape[0]
-    M = 1/M
-
-    if not weighted:
-        M[M > 0] = 1
-
-    # log.error("skipping ...")
-    for k in range(n):
-        M = np.minimum(M, np.add.outer(M[:, k], M[k, :]))
-    return M
+    shp = floyd_warshall(csr_matrix(dmat), **kwdargs)
+    return shp
 
 
 def closure(A, nA, B, nB):
@@ -80,7 +74,7 @@ def centrality(T, V, i):
     :param np.array T: tie strength matrix (nr. of shared films)
     :param dict V: maps artist_id to index
     :param int i: row index
-    :returns: :math:`sum_j T'_{i,j}` where *T'* is the indicator
+    :returns: `sum_j T'_{i,j}` where *T'* is the indicator
         matrix of *T*
     """
 
@@ -137,7 +131,6 @@ class Report(object):
             distance functions)
         :param list rel_names: orderedDict of relations and attributes of
             the type relation --> attribute (used to refernece relation functions)
-        :param dict weights: dictionary of the type attribute_value --> weight
     """
 
     def __init__(self, year, dbpath, SM, BM, TS, dist_names, rel_names):
@@ -163,10 +156,8 @@ class Report(object):
         log.info("reporting on %d actors ..." % len(self.actors))
         log.info("\tbonacich centrality")
         self.boncent = bonacich_centrality(self.tstrengths[0].matrix)
-        log.info("\tweighted shortest paths...")
-        self.weighted_shpaths = floyd(self.tstrengths[0].matrix, weighted=True)
         log.info("\tshortest paths...")
-        self.shpaths = floyd(self.tstrengths[0].matrix, weighted=False)
+        self.shpaths = floyd(self.tstrengths[0].matrix)
 
         log.info("\ttriadic closure (1 of 4) ...")
         self.tr1, self.tr1_idx = closure(self.tstrengths[0].matrix, self.V,
@@ -266,7 +257,7 @@ class Report(object):
                                self.tstrengths[1].matrix,
                                self.tstrengths[2].matrix], self.V) +
             (self.affiliations.corr(s, r), self.affiliations.sim(s, r)) +
-            Matrix._get(s, r, [self.weighted_shpaths, self.shpaths], self.V) +
+            Matrix._get(s, r, [self.shpaths], self.V) +
             Matrix._get(s, r, [self.tr1], self.tr1_idx) +
             Matrix._get(s, r, [self.tr2], self.tr2_idx) +
             Matrix._get(s, r, [self.tr3], self.tr3_idx) +
@@ -296,7 +287,7 @@ class Report(object):
                    ["tie_strength_sender_den", "tie_strength_receiver_den",
                     "tie_strength_intersect"] +
                    ["affiliation_corr", "affiliation_sim"] +
-                   ["weighted_shortest_path", "shortest_path"] +
+                   ["shortest_path"] +
                    ["tr1", "tr2", "tr3", "tr4"] +
                    ["receiver_card"] +
                    ["centrality_s", "centrality_r", "bonacich_centrality_s",
