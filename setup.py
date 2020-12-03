@@ -1,5 +1,7 @@
 import glob
 from setuptools import *
+from Cython.Build import cythonize
+
 
 setup(
         name='ghw',
@@ -10,6 +12,6 @@ setup(
         packages=['ghw'],
         #package_dir={'ghw': 'src'},
         #scripts=glob.glob('scripts/*py'),
-        ext_modules=[],
+        ext_modules=cythonize("ghw/cosine_cy.pyx"),
         install_requires=['numpy > 1.5']
 )

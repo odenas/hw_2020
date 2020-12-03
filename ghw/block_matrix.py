@@ -5,8 +5,10 @@ import os
 from dataclasses import dataclass
 
 import numpy as np
+from tqdm import tqdm
 
 from .socio_matrix import SocioMatrix
+from .cosine_cy import cosine_metric as cosine_metric_cy
 
 log = logging.getLogger()
 
@@ -145,7 +147,7 @@ def cosine_metric(i, j, m):
 
 
 dflist = {
-    "cosine_metric": cosine_metric,
+    "cosine_metric": cosine_metric_cy,
     "euclidean_metric": euclidean_metric,
     "correlation_metric": correlation_metric
 }
@@ -160,7 +162,7 @@ class BMat:
     @classmethod
     def dmat(cls, m, metric_f):
         dmat = np.ones_like(m, dtype=np.float32)
-        for i in range(dmat.shape[0]):
+        for i in tqdm(range(dmat.shape[0]), total=dmat.shape[0]):
             for j in range(dmat.shape[0]):
                 if i >= j:
                     continue
