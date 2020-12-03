@@ -15,7 +15,7 @@ cdef dot(float[:] a, float[:] b, float correct):
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing.
-cdef cosine_metric(Py_ssize_t i, Py_ssize_t j, float[:, :] m):
+def cosine_metric(Py_ssize_t i, Py_ssize_t j, float[:, :] m):
     """cosine distance
 
     compute distance on the given sociomatrix and artist pair
@@ -55,7 +55,7 @@ cdef cosine_metric(Py_ssize_t i, Py_ssize_t j, float[:, :] m):
 
     if norm_i and norm_j:
         result = (dot_row + dot_col) / (np.sqrt(norm_i) * np.sqrt(norm_j))
-        if result > 1 + epsilon:
-            raise ValueError("bad cosine value(%f)! ..." % result)
+        #if result > 1 + epsilon:
+        #    raise ValueError("bad cosine value(%f)! ..." % result)
         return result
     return 0.0
