@@ -18,7 +18,7 @@ def allSenders(dbpath, year):
 
 
 def main(socio_matrix, dbpath, distance, year):
-    dmat = BMat.dmat(socio_matrix.matrix.astype(np.float32), dflist[f"{distance}_metric"])
+    dmat = BMat.dmat(socio_matrix.matrix, dflist[f"{distance}_metric"])
     block_matrix = BMat(socio_matrix, distance, dmat)
     pklSave(args.output, block_matrix)
 
