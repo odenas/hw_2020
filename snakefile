@@ -8,7 +8,7 @@ relations = ["nominated", "year", "champ", "film", "genre", "house", "roles"]
 ts = ["ts1", "ts2", "ts3"]
 relations = ["genre"]
 metrics = ["cosine", "euclidean", "correlation"]
-metrics = ["cosine"]
+metrics = ["euclidean"]
 
 
 wildcard_constraints:

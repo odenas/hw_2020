@@ -6,8 +6,8 @@ from ghw.artist_data import ArtistInfoData
 from ghw.blacklist_data import BlacklistData
 from ghw.db import Db
 
-#adata = "formatted_full_artist_data.csv"
-adata = "red_artist_data.csv"
+adata = "formatted_full_artist_data.csv"
+#adata = "red_artist_data.csv"
 
 def file_reader(fname):
     return ArtistInfoData.file_reader(fname, header=(not adata.startswith("red")))
