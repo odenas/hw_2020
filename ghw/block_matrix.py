@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import numpy as np
 from tqdm import tqdm
-import numba
 from numba import jit
 
 from .socio_matrix import SocioMatrix
@@ -31,7 +30,7 @@ def run_strict(metric):
     return new
 
 
-@run_strict
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def euclidean_metric(i, j, m):
     """euclidean distance
 
@@ -51,12 +50,10 @@ def euclidean_metric(i, j, m):
     col -= (m[j, i] - m[j, j])*(m[j, i] - m[j, j])  # k != j
 
     d = row + col
-    if d < 0:
-        log.error("bad value entering pdb ...")
     return np.sqrt(d)
 
 
-@run_strict
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def correlation_metric(i, j, m):
     """correlation
 
@@ -102,14 +99,12 @@ def correlation_metric(i, j, m):
 
     if den:
         result = num / den
-        if abs(result) > 1.001:
-            log.error("bad correlation value(%f)! entering pdb ..." % result)
         return result
     else:
         return np.nan
 
 
-@jit("double(int32, int32, float32[:, :])", nopython=True)
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def cosine_metric(i, j, m):
     epsilon = 1e-4
 
@@ -130,13 +125,13 @@ def cosine_metric(i, j, m):
     norm_col_i = np.dot(ci, ci) - (mii*mii) - (mji*mji)
     norm_i = norm_row_i + norm_col_i
     if norm_i < -epsilon:
-        raise ValueError("suspicious norm_i value: ")
+        return np.nan
 
     norm_row_j = np.dot(rj, rj) - (mji*mji) - (mjj*mjj)
     norm_col_j = np.dot(cj, cj) - (mij*mij) - (mjj*mjj)
     norm_j = norm_row_j + norm_col_j
     if norm_j < -epsilon:
-        raise ValueError("suspicious norm_j value: ")
+        return np.nan
 
     if norm_i and norm_j:
         return (dot_row + dot_col) / (np.sqrt(norm_i) * np.sqrt(norm_j))
@@ -158,13 +153,14 @@ class BMat:
 
     @classmethod
     def dmat(cls, m, metric_f):
-        dmat = np.ones_like(m, dtype=np.float32)
+        dmat = np.empty(m.shape, dtype=np.float32)
         for i in tqdm(range(dmat.shape[0]), total=dmat.shape[0]):
             for j in range(dmat.shape[0]):
-                if i >= j:
-                    continue
-                dmat[i, j] = metric_f(i, j, m)
-                dmat[j, i] = dmat[i, j]
+                if i == j:
+                    dmat[i, j] = 0.0
+                elif i < j:
+                    dmat[i, j] = metric_f(i, j, m)
+                    dmat[j, i] = dmat[i, j]
         return dmat
 
     @property

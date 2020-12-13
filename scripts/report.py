@@ -30,5 +30,17 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     year, dmetric, relation = BMat.parse_fname(args.bm)
-    main(Report(year, args.dbpath, pklLoad(args.sm), pklLoad(args.bm), list(map(pklLoad, args.ts)),
-                [dmetric], relation), args.output)
+    sm = pklLoad(args.sm)
+    log.info("Loaded sm...")
+    bm = pklLoad(args.bm)
+    log.info("Loaded bm...")
+    ts1 = pklLoad(args.ts[0])
+    log.info("Loaded ts1...")
+    ts2 = pklLoad(args.ts[1])
+    log.info("Loaded ts2...")
+    ts3 = pklLoad(args.ts[2])
+    log.info("Loaded ts3...")
+
+    report = Report(year, args.dbpath, sm, bm, (ts1, ts2, ts3),
+                    [dmetric], relation)
+    main(report, args.output)
