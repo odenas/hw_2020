@@ -89,6 +89,16 @@ class SocioMatrix:
             df = (df.assign(relation=lambda x: x.relation.apply(Db.decode)))
         return df
 
+    def serialize(self):
+        inv_artists = {v: k for k, v in self.artists.items()}
+        n = self.matrix.shape[0]
+        for i in tqdm(range(n)):
+            for j in range(n):
+                row = (inv_artists[i], inv_artists[j],
+                       self.year, self.relation,
+                       float(self.matrix[i, j]))
+                yield row
+
     @classmethod
     def from_db(cls, dbpath, relation, year):
         df = cls._get_df(dbpath, relation, year)
@@ -113,3 +123,4 @@ class SocioMatrix:
                     continue
                 m[i, j] = sim_f(row, col)
         return m
+

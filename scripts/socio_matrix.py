@@ -3,7 +3,6 @@ Build and dump a socio matrix
 """
 
 import logging
-import os
 import sys
 import argparse
 
@@ -22,8 +21,7 @@ def main(artist_data, year, relation, output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('adata', type=str, help='Artist database')
-    parser.add_argument('output', type=str,
-                        help='Output file (of the type sm_year_relation.pkl')
+    parser.add_argument('output', type=str, help='Output file')
     parser.add_argument('--lag', type=int, choices=(5, 1000), default=1000,
                         help='Lag parameter')
     args = parser.parse_args()

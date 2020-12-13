@@ -1,12 +1,13 @@
 from ghw import pklSave, pklLoad
 
 artist_data = "data/input/adata.db"
+report_data = "report.db"
 
 years = [1951, 1952, 1953, 1954, 1955]
 years = [1953]
 relations = ["nominated", "year", "champ", "film", "genre", "house", "roles"]
 ts = ["ts1", "ts2", "ts3"]
-relations = ["genre"]
+#relations = ["genre"]
 metrics = ["cosine", "euclidean", "correlation"]
 metrics = ["euclidean"]
 
@@ -23,7 +24,14 @@ socio_m = expand("data/output/sm_{y}_{r}.pkl", y=years, r=relations, m=metrics)
 
 rule all:
     input:
-        "data/output/report.csv"
+        sm=socio_m,
+        ts=tie_strengths,
+        db=report_data
+    output:
+        [touch(f + ".imported") for f in socio_m + tie_strengths]
+    shell:
+         ("python scripts/import_outputs.py {input.sm} {input.ts} {input.db}")
+
 
 rule full_report:
     input:
@@ -99,3 +107,11 @@ rule socio_matrix:
         "data/output/sm_{year}_{relation}.pkl"
     shell:
         ("python {input} {output}")
+
+rule out_db:
+    input:
+        artist_data,
+    output:
+        report_data
+    shell:
+        ("cp {input} {output}")
