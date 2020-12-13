@@ -5,6 +5,9 @@ ghw.egg-info
 .snakemake
 .ipynb_checkpoints
 egg_info/
+build
+ghw/*.c
+ghw/*.so
 
 Untitled.ipynb
 data/input/adata.db

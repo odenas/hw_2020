@@ -134,13 +134,16 @@ class Report(object):
     """
 
     def __init__(self, year, dbpath, SM, BM, TS, dist_names, rel_names):
+        log.info("initializing report ...")
         self._dbpath = dbpath
         self.header = self.__set_header(rel_names, dist_names)
         self.affiliations = Affiliations()
+        log.info("\tloaded %d affiliations ...", len(self.affiliations.data))
         self.B_data = dict(
             ((row.sender, row.receiver, row.year), row)
             for row in self.Db.tb("trials").itertuples()
         )
+        log.info("\tcreated B_data of size %d ...", len(self.B_data))
 
         self.year = year
         self.actors = self.Db.all_actor_ids
@@ -149,6 +152,7 @@ class Report(object):
         self.BM = BM
 
         self.namings_idx, self.namings = self._naming(self.actors, self.year-1)
+        log.info("\tcreated namings of size %d ...", self.namings.shape[0])
 
         self.tstrengths = list(TS)
         self.V = self.tstrengths[0].artists

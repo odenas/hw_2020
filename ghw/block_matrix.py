@@ -5,6 +5,8 @@ import os
 from dataclasses import dataclass
 
 import numpy as np
+from tqdm import tqdm
+from numba import jit
 
 from .socio_matrix import SocioMatrix
 
@@ -28,7 +30,7 @@ def run_strict(metric):
     return new
 
 
-@run_strict
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def euclidean_metric(i, j, m):
     """euclidean distance
 
@@ -48,12 +50,10 @@ def euclidean_metric(i, j, m):
     col -= (m[j, i] - m[j, j])*(m[j, i] - m[j, j])  # k != j
 
     d = row + col
-    if d < 0:
-        log.error("bad value entering pdb ...")
     return np.sqrt(d)
 
 
-@run_strict
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def correlation_metric(i, j, m):
     """correlation
 
@@ -99,49 +99,43 @@ def correlation_metric(i, j, m):
 
     if den:
         result = num / den
-        if abs(result) > 1.001:
-            log.error("bad correlation value(%f)! entering pdb ..." % result)
         return result
     else:
         return np.nan
 
 
-@run_strict
+@jit("double(int64, int64, float32[:, :])", nopython=True)
 def cosine_metric(i, j, m):
-    """cosine distance
+    epsilon = 1e-4
 
-    compute distance on the given sociomatrix and artist pair
-    :param int i: artist id
-    :param int j: artist id
-    :param np.array m: sociomatrix
-    :returns: the distance
-    """
+    ri = m[i, :]
+    ci = m[:, i]
+    rj = m[j, :]
+    cj = m[:, j]
 
-    def stabilize(v):
-        if v >= 0:
-            return v
-        if v < -0.000001:
-            log.warning("suspicious value: %10f" % v)
-            return 0
+    mii = m[i, i]
+    mij = m[i, j]
+    mji = m[j, i]
+    mjj = m[j, j]
 
-    dot_row = np.dot(m[i, :], m[j, :]) - (m[i, i]*m[j, i]) - (m[i, j]*m[j, j])
-    dot_col = np.dot(m[:, i],  m[:, j]) - (m[i, i]*m[i, j]) - (m[j, i]*m[j, j])
+    dot_row = np.dot(ri, rj) - (mii*mji) - (mij*mjj)
+    dot_col = np.dot(ci, cj) - (mii*mij) - (mji*mjj)
 
-    norm_row_i = np.dot(m[i, :],  m[i, :]) - (m[i, i]*m[i, i]) - (m[i, j]*m[i, j])
-    norm_col_i = np.dot(m[:, i],  m[:, i]) - (m[i, i]*m[i, i]) - (m[j, i]*m[j, i])
-    norm_i = stabilize(norm_row_i + norm_col_i)
+    norm_row_i = np.dot(ri, ri) - (mii*mii) - (mij*mij)
+    norm_col_i = np.dot(ci, ci) - (mii*mii) - (mji*mji)
+    norm_i = norm_row_i + norm_col_i
+    if norm_i < -epsilon:
+        return np.nan
 
-    norm_row_j = np.dot(m[j, :],  m[j, :]) - (m[j, i]*m[j, i]) - (m[j, j]*m[j, j])
-    norm_col_j = np.dot(m[:, j],  m[:, j]) - (m[i, j]*m[i, j]) - (m[j, j]*m[j, j])
-    norm_j = stabilize(norm_row_j + norm_col_j)
+    norm_row_j = np.dot(rj, rj) - (mji*mji) - (mjj*mjj)
+    norm_col_j = np.dot(cj, cj) - (mij*mij) - (mjj*mjj)
+    norm_j = norm_row_j + norm_col_j
+    if norm_j < -epsilon:
+        return np.nan
 
     if norm_i and norm_j:
-        result = (dot_row + dot_col) / (np.sqrt(norm_i) * np.sqrt(norm_j))
-        if abs(result) > 1.001:
-            log.error("bad cosine value(%f)! entering pdb ..." % result)
-        return result
-    else:
-        return np.nan
+        return (dot_row + dot_col) / (np.sqrt(norm_i) * np.sqrt(norm_j))
+    return np.nan
 
 
 dflist = {
@@ -159,13 +153,14 @@ class BMat:
 
     @classmethod
     def dmat(cls, m, metric_f):
-        dmat = np.ones_like(m, dtype=np.float32)
-        for i in range(dmat.shape[0]):
+        dmat = np.empty(m.shape, dtype=np.float32)
+        for i in tqdm(range(dmat.shape[0]), total=dmat.shape[0]):
             for j in range(dmat.shape[0]):
-                if i >= j:
-                    continue
-                dmat[i, j] = metric_f(i, j, m)
-                dmat[j, i] = dmat[i, j]
+                if i == j:
+                    dmat[i, j] = 0.0
+                elif i < j:
+                    dmat[i, j] = metric_f(i, j, m)
+                    dmat[j, i] = dmat[i, j]
         return dmat
 
     @property

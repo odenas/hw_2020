@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 
+import numpy as np
+
 from ghw import pklLoad, pklSave
 from ghw.block_matrix import BMat, dflist
 from ghw.db import Db
