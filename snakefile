@@ -1,5 +1,4 @@
 
-#artist_data = "data/input/red_artist_data.csv"
 artist_data = "data/input/adata.db"
 
 years = [1951, 1952, 1953, 1954, 1955]
@@ -8,7 +7,6 @@ relations = ["nominated", "year", "champ", "film", "genre", "house", "roles"]
 ts = ["ts1", "ts2", "ts3"]
 relations = ["genre"]
 metrics = ["cosine", "euclidean", "correlation"]
-metrics = ["euclidean"]
 
 
 wildcard_constraints:

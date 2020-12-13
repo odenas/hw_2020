@@ -106,8 +106,7 @@ class SocioMatrix:
 
     @classmethod
     def _adj_matrix(cls, array, sim_f):
-
-        m = np.zeros((array.shape[0], array.shape[0]))
+        m = np.zeros((array.shape[0], array.shape[0]), dtype=np.float32)
         for i, row in tqdm(enumerate(array), total=m.shape[0]):
             for j, col in enumerate(array):
                 if i == j:
