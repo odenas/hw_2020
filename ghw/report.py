@@ -4,6 +4,7 @@ from itertools import product
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import floyd_warshall
+from tqdm import tqdm
 
 import pandas as pd
 
@@ -54,13 +55,13 @@ def closure(A, nA, B, nB):
     vb = np.zeros((len(nm), len(nm)), np.int8)
 
     # log.error("Skipping ... ")
-    for r, c in product(nm, nm):
-        i, j = nmi[r], nmi[c]
-        va[i, j] = identity(A[nA[r], nA[c]])
-        vb[i, j] = identity(B[nB[r], nB[c]])
+    for r in tqdm(nm, total=len(nm)):
+        for c in nm:
+            i, j = nmi[r], nmi[c]
+            va[i, j] = identity(A[nA[r], nA[c]])
+            vb[i, j] = identity(B[nB[r], nB[c]])
     result = np.dot(va, vb)
     return (result, nmi)
-    return va, nmi
 
 
 def centrality(T, V, i):
@@ -133,7 +134,7 @@ class Report(object):
             the type relation --> attribute (used to refernece relation functions)
     """
 
-    def __init__(self, year, dbpath, SM, BM, TS, dist_names, rel_names):
+    def __init__(self, year, dbpath, SM, BM, TS, cm, dist_names, rel_names):
         log.info("initializing report ...")
         self._dbpath = dbpath
         self.header = self.__set_header(rel_names, dist_names)
@@ -159,22 +160,18 @@ class Report(object):
         assert set(self.V.keys()) == set(self.SM.artists.keys())
         log.info("reporting on %d actors ..." % len(self.actors))
         log.info("\tbonacich centrality")
-        self.boncent = bonacich_centrality(self.tstrengths[0].matrix)
+        self.boncent = cm['bc']
         log.info("\tshortest paths...")
-        self.shpaths = floyd(self.tstrengths[0].matrix)
+        self.shpaths = cm['shp']
 
         log.info("\ttriadic closure (1 of 4) ...")
-        self.tr1, self.tr1_idx = closure(self.tstrengths[0].matrix, self.V,
-                                         self.namings, self.namings_idx)
+        self.tr1, self.tr1_idx = cm['tr1']
         log.info("\ttriadic closure (2 of 4) ...")
-        self.tr2, self.tr2_idx = closure(self.namings, self.namings_idx,
-                                         self.tstrengths[0].matrix, self.V)
+        self.tr2, self.tr2_idx = cm['tr2']
         log.info("\ttriadic closure (3 of 4) ...")
-        self.tr3, self.tr3_idx = closure(self.namings, self.namings_idx,
-                                         self.namings, self.namings_idx)
+        self.tr3, self.tr3_idx = cm['tr3']
         log.info("\ttriadic closure (4 of 4) ...")
-        self.tr4, self.tr4_idx = closure(self.tstrengths[0].matrix, self.V,
-                                         self.tstrengths[0].matrix, self.V)
+        self.tr4, self.tr4_idx = cm['tr4']
 
     @property
     def Db(self):
